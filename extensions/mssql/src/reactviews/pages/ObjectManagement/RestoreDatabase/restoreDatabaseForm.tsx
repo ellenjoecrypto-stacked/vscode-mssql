@@ -19,10 +19,26 @@ import {
     ObjectManagementWebviewState,
 } from "../../../../sharedInterfaces/objectManagement";
 import { locConstants } from "../../../common/locConstants";
-import { Field, Image, makeStyles, Radio, RadioGroup, Text } from "@fluentui/react-components";
-import { ColorThemeKind } from "../../../../sharedInterfaces/webview";
+import {
+    Button,
+    Dropdown,
+    Field,
+    Image,
+    makeStyles,
+    Radio,
+    RadioGroup,
+    Spinner,
+    Text,
+} from "@fluentui/react-components";
+import { ApiStatus, ColorThemeKind } from "../../../../sharedInterfaces/webview";
 import { AzureIcon20 } from "../../../common/icons/fluentIcons";
 import { Database20Regular, DocumentDatabase20Regular } from "@fluentui/react-icons";
+import { azureLogoColor } from "../../ConnectionDialog/azureBrowsePage";
+import { BackupFileCard } from "../BackupDatabase/backupFileCard";
+import { BackupFormProps } from "../BackupDatabase/backupDatabaseForm";
+import { FileBrowserProvider } from "../../../../sharedInterfaces/fileBrowser";
+import { FileBrowserDialog } from "../../../common/FileBrowserDialog";
+import { AdvancedOptionsDrawer } from "./restoreAdvancedOptions";
 
 const useStyles = makeStyles({
     outerDiv: {
@@ -101,7 +117,7 @@ const useStyles = makeStyles({
 const restoreLightIcon = require("../../../../../media/restore_light.svg");
 const restoreDarkIcon = require("../../../../../media/restore_dark.svg");
 
-export const RestoreDatabaseForm: React.FC = () => {
+export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setFileErrors }) => {
     const classes = useStyles();
     const context = useContext(RestoreDatabaseContext);
     const state = context?.state;
@@ -113,15 +129,29 @@ export const RestoreDatabaseForm: React.FC = () => {
     const restoreViewModel = state.viewModel.model as RestoreDatabaseViewModel;
 
     const [restoreType, setRestoreType] = useState<RestoreType>(restoreViewModel.restoreType);
+    const [isAdvancedDrawerOpen, setIsAdvancedDrawerOpen] = useState<boolean>(false);
 
     const formStyles = useFormStyles();
     const formComponents = state.formComponents;
 
-    const renderFormFields = () =>
+    const handleLoadAzureComponents = () => {
+        if (!context || !restoreViewModel) return;
+
+        const azureComponents = Object.keys(restoreViewModel.azureComponentStatuses);
+        const azureComponentToLoad = azureComponents.find(
+            (component) =>
+                restoreViewModel.azureComponentStatuses[component] === ApiStatus.NotStarted,
+        );
+        if (azureComponentToLoad) {
+            context.loadAzureComponent(azureComponentToLoad);
+        }
+    };
+
+    const renderFormFields = (groupName?: string) =>
         Object.values(formComponents)
             .filter(
                 (component) =>
-                    !component.groupName || component.groupName === restoreViewModel.restoreType,
+                    component.groupName === groupName || (!groupName && !component.groupName),
             )
             .map((component, index) => (
                 <div
@@ -151,6 +181,75 @@ export const RestoreDatabaseForm: React.FC = () => {
                 </div>
             ));
 
+    const renderUrlFields = () =>
+        Object.values(formComponents)
+            .filter((component) => component.groupName === RestoreType.Url)
+            .map((component, index) => {
+                const loadStatus = restoreViewModel.azureComponentStatuses[component.propertyName];
+                // Trigger loading only if not started or loaded
+                if (loadStatus === ApiStatus.NotStarted) {
+                    handleLoadAzureComponents();
+                }
+
+                return loadStatus === ApiStatus.Loaded || loadStatus === ApiStatus.Error ? (
+                    <div
+                        key={index}
+                        className={formStyles.formComponentDiv}
+                        style={
+                            component.componentWidth
+                                ? {
+                                      width: component.componentWidth,
+                                      maxWidth: component.componentWidth,
+                                      whiteSpace: "normal", // allows wrapping
+                                      overflowWrap: "break-word", // breaks long words if needed
+                                      wordBreak: "break-word",
+                                  }
+                                : {}
+                        }>
+                        <FormField<
+                            RestoreDatabaseFormState,
+                            ObjectManagementWebviewState<RestoreDatabaseFormState>,
+                            ObjectManagementFormItemSpec<RestoreDatabaseFormState>,
+                            RestoreDatabaseContextProps
+                        >
+                            context={context}
+                            component={component}
+                            idx={index}
+                        />
+                    </div>
+                ) : (
+                    <div style={{ marginLeft: "6px", marginBottom: "2px" }} key={index}>
+                        <Field
+                            key={index}
+                            label={
+                                <div className={classes.formLoadingLabel}>
+                                    <Text>{component.label}</Text>
+                                    <Spinner
+                                        size="extra-tiny"
+                                        style={{ transform: "scale(0.8)" }}
+                                    />
+                                </div>
+                            }>
+                            <Dropdown
+                                size="small"
+                                placeholder={locConstants.backupDatabase.loading}
+                                style={{
+                                    marginTop: 0,
+                                    marginLeft: "5px",
+                                    width: "630px",
+                                }}
+                            />
+                        </Field>
+                    </div>
+                );
+            });
+
+    const getFileValidationMessage = (): string => {
+        return restoreViewModel.backupFiles.length > 0
+            ? ""
+            : locConstants.backupDatabase.chooseAtLeastOneFile;
+    };
+
     return (
         <div className={classes.outerDiv}>
             <div className={classes.header}>
@@ -176,6 +275,17 @@ export const RestoreDatabaseForm: React.FC = () => {
                     {`${locConstants.restoreDatabase.restore} - ${restoreViewModel.serverName}`}
                 </Text>
             </div>
+            {state.dialog?.type === "fileBrowser" && state.fileBrowserState && (
+                <FileBrowserDialog
+                    ownerUri={state.ownerUri}
+                    defaultFilePath={state.defaultFileBrowserExpandPath}
+                    fileTree={state.fileBrowserState.fileTree}
+                    showFoldersOnly={state.fileBrowserState.showFoldersOnly}
+                    provider={context as FileBrowserProvider}
+                    fileTypeOptions={state.fileFilterOptions}
+                    closeDialog={() => context.toggleFileBrowserDialog(false, false)}
+                />
+            )}
             <div className={formStyles.formComponentDiv} style={{ marginLeft: "5px" }}>
                 <Field
                     label={locConstants.backupDatabase.backupLocation}
@@ -221,7 +331,77 @@ export const RestoreDatabaseForm: React.FC = () => {
                     </RadioGroup>
                 </Field>
             </div>
+            {restoreViewModel.restoreType === RestoreType.Url ? (
+                restoreViewModel.azureComponentStatuses["accountId"] === ApiStatus.Loaded ? (
+                    renderUrlFields()
+                ) : (
+                    <div className={classes.azureLoadingContainer}>
+                        <img
+                            className={classes.icon}
+                            src={azureLogoColor()}
+                            alt={locConstants.azure.loadingAzureAccounts}
+                        />
+                        <div>{locConstants.azure.loadingAzureAccounts}</div>
+                        <Spinner size="large" style={{ marginTop: "10px" }} />
+                    </div>
+                )
+            ) : restoreViewModel.restoreType === RestoreType.BackupFile ? (
+                <div className={formStyles.formComponentDiv} style={{ marginLeft: "5px" }}>
+                    <Field
+                        label={locConstants.backupDatabase.backupFiles}
+                        validationMessage={getFileValidationMessage()}
+                        required={true}
+                        validationState={getFileValidationMessage() === "" ? "none" : "error"}
+                        className={classes.field}
+                        orientation="horizontal">
+                        <div className={classes.fileDiv}>
+                            <div className={classes.fileList}>
+                                {restoreViewModel.backupFiles.map((file, index) => (
+                                    <BackupFileCard
+                                        key={file.filePath}
+                                        backupFiles={restoreViewModel.backupFiles}
+                                        file={file}
+                                        index={index}
+                                        fileErrors={fileErrors}
+                                        setFileErrors={setFileErrors}
+                                        removeBackupFile={context.removeBackupFile}
+                                    />
+                                ))}
+                            </div>
+                            <div className={classes.fileButtons}>
+                                <Button
+                                    className={classes.button}
+                                    type="submit"
+                                    appearance="secondary"
+                                    onClick={() => {
+                                        context.toggleFileBrowserDialog(false, true);
+                                    }}>
+                                    {locConstants.restoreDatabase.browseFiles}
+                                </Button>
+                            </div>
+                        </div>
+                    </Field>
+                </div>
+            ) : (
+                renderFormFields(RestoreType.Database)
+            )}
             {renderFormFields()}
+            <AdvancedOptionsDrawer
+                isAdvancedDrawerOpen={isAdvancedDrawerOpen}
+                setIsAdvancedDrawerOpen={setIsAdvancedDrawerOpen}
+            />
+            <div className={classes.bottomDiv}>
+                <div className={classes.advancedButtonDiv}>
+                    <Button
+                        className={classes.button}
+                        appearance="secondary"
+                        onClick={(_event) => {
+                            setIsAdvancedDrawerOpen(!isAdvancedDrawerOpen);
+                        }}>
+                        {locConstants.backupDatabase.advanced}
+                    </Button>
+                </div>
+            </div>
         </div>
     );
 };

@@ -2866,6 +2866,8 @@ export class RestoreDatabase {
     public static restoreWithRecovery = l10n.t("RESTORE WITH RECOVERY");
     public static restoreWithNoRecovery = l10n.t("RESTORE WITH NORECOVERY");
     public static restoreWithStandby = l10n.t("RESTORE WITH STANDBY");
+    public static dataFileFolder = l10n.t("Data file folder");
+    public static logFileFolder = l10n.t("Log file folder");
     public static standbyFile = l10n.t("Standby file");
     public static tailLogBackup = l10n.t("Tail-log backup");
     public static takeTailLogBackup = l10n.t("Take tail-log backup before restore");
@@ -2877,4 +2879,8 @@ export class RestoreDatabase {
     public static closeExistingConnections = l10n.t(
         "Close existing connections to destination database",
     );
+    public static blob = l10n.t("Blob");
+    public static selectABlob = l10n.t("Select a blob");
+    public static blobIsRequired = l10n.t("Blob is required");
+    public static noBlobsFound = l10n.t("No blobs found");
 }

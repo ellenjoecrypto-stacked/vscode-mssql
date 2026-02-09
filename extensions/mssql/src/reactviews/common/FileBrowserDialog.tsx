@@ -85,6 +85,7 @@ export const FileBrowserDialog = ({
     fileTypeOptions,
     closeDialog,
     showFoldersOnly,
+    propertyName,
 }: {
     ownerUri: string;
     defaultFilePath: string;
@@ -93,6 +94,7 @@ export const FileBrowserDialog = ({
     fileTypeOptions: FileTypeOption[];
     closeDialog: () => void;
     showFoldersOnly: boolean;
+    propertyName?: string;
 }) => {
     const classes = useStyles();
 
@@ -147,7 +149,7 @@ export const FileBrowserDialog = ({
     };
 
     const handleSubmit = async () => {
-        await provider.submitFilePath(selectedPath);
+        await provider.submitFilePath(selectedPath, propertyName);
         await handleDialogClose();
     };
 

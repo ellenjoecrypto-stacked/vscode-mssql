@@ -9,12 +9,13 @@ import {
     DisasterRecoveryViewModel,
     DisasterRecoveryAzureProvider,
 } from "./objectManagement";
-import { MediaDeviceType } from "./backup";
+import { BackupFile, MediaDeviceType } from "./backup";
 import { FileBrowserProvider, FileBrowserReducers } from "./fileBrowser";
 import { FormContextProps, FormReducers } from "./form";
 import { ObjectManagementFormItemSpec, ObjectManagementWebviewState } from "./objectManagement";
 import { TaskExecutionMode } from "./schemaCompare";
 import { ApiStatus } from "./webview";
+import { BlobItem } from "@azure/storage-blob";
 
 //#region Sql Tools Service Interfaces
 
@@ -229,17 +230,14 @@ export class RestoreDatabaseViewModel extends DisasterRecoveryViewModel {
     restoreType: RestoreType = RestoreType.Database;
     serverName: string = "";
 
-    // File browser props
-    backupFilePaths: string[] = [];
-    dataFileFolder: string = "";
-    logFileFolder: string = "";
-    standbyFile: string = "";
-    tailLogBackupFilePath: string = "";
+    backupFiles: BackupFile[] = [];
 
     restoreUrl: string = "";
 
     restorePlan: RestorePlanResponse | undefined = undefined;
     restorePlanLoadStatus: ApiStatus = ApiStatus.Loading;
+
+    blobs: BlobItem[] = [];
 }
 
 export interface RestoreDatabaseParams {
@@ -249,18 +247,27 @@ export interface RestoreDatabaseParams {
 
 export interface RestoreDatabaseFormState extends DisasterRecoveryAzureFormState {
     // Database fields/ general fields
-    sourceDatabase: string;
-    targetDatabase: string;
+    sourceDatabaseName: string;
+    targetDatabaseName: string;
+
+    // Restore-specific Azure field
+    blob: string;
 
     // Advanced options
     relocateDbFiles: boolean;
-    overwriteExistingDatabase: boolean;
-    preserveReplicationSettings: boolean;
-    restrictAccess: boolean;
+    replaceDatabase: boolean;
+    keepReplication: boolean;
+    setRestrictedUser: boolean;
     recoveryState: string;
-    tailLogBackup: boolean;
-    leaveSourceDatabase: boolean;
-    closeConn: boolean;
+    backupTailLog: boolean;
+    tailLogWithNoRecovery: boolean;
+    closeExistingConnections: boolean;
+
+    // File browser fields
+    dataFileFolder: string;
+    logFileFolder: string;
+    standbyFile: string;
+    tailLogBackupFile: string;
 }
 
 export interface RestoreDatabaseReducers<TFormState>
@@ -280,6 +287,14 @@ export interface RestoreDatabaseReducers<TFormState>
      */
     setRestoreType: {
         restoreType: RestoreType;
+    };
+
+    /**
+     * Removes a backup file from the list
+     * @param filePath The file path to remove
+     */
+    removeBackupFile: {
+        filePath: string;
     };
 }
 
@@ -306,6 +321,12 @@ export interface RestoreDatabaseProvider
      * @param restoreType
      */
     setRestoreType(restoreType: RestoreType): void;
+
+    /**
+     *  Removes a backup file from the list
+     * @param filePath  The file path to remove
+     */
+    removeBackupFile(filePath: string): void;
 }
 
 export enum RestoreType {

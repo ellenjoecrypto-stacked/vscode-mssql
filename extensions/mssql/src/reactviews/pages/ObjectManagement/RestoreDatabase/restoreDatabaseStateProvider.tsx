@@ -74,9 +74,10 @@ const RestoreDatabaseStateProvider: React.FC<RestoreDatabaseProviderProps> = ({ 
                         nodePath,
                     });
                 },
-                submitFilePath(selectedPath: string): void {
+                submitFilePath(selectedPath: string, propertyName?: string): void {
                     webviewState?.extensionRpc.action("submitFilePath", {
                         selectedPath,
+                        propertyName,
                     });
                 },
                 closeFileBrowser(ownerUri: string): void {
@@ -93,6 +94,11 @@ const RestoreDatabaseStateProvider: React.FC<RestoreDatabaseProviderProps> = ({ 
                 loadAzureComponent(componentName: string): void {
                     webviewState?.extensionRpc.action("loadAzureComponent", {
                         componentName,
+                    });
+                },
+                removeBackupFile: function (filePath: string): void {
+                    webviewState?.extensionRpc.action("removeBackupFile", {
+                        filePath,
                     });
                 },
             }}>

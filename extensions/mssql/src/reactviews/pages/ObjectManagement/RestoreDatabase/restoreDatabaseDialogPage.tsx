@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { useContext } from "react";
+import { useContext, useState } from "react";
 import { makeStyles, Spinner, Text } from "@fluentui/react-components";
 import { ErrorCircleRegular } from "@fluentui/react-icons";
 import { ApiStatus } from "../../../../sharedInterfaces/webview";
@@ -48,6 +48,7 @@ export const RestoreDatabaseDialogPage = () => {
     }
 
     const restoreViewModel = state.viewModel.model as RestoreDatabaseViewModel;
+    const [fileErrors, setFileErrors] = useState<number[]>([]);
 
     const renderMainContent = () => {
         switch (restoreViewModel?.loadState) {
@@ -88,7 +89,10 @@ export const RestoreDatabaseDialogPage = () => {
                                 ObjectManagementCancelNotification.type,
                             );
                         }}>
-                        <RestoreDatabaseForm />
+                        <RestoreDatabaseForm
+                            fileErrors={fileErrors}
+                            setFileErrors={setFileErrors}
+                        />
                     </ObjectManagementDialog>
                 );
             case ApiStatus.Error:

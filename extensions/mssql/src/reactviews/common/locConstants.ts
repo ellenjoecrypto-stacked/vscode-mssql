@@ -1932,6 +1932,9 @@ export class LocConstants {
             database: l10n.t("Database"),
             backupFile: l10n.t("Backup File"),
             url: l10n.t("URL"),
+            browseFiles: l10n.t("Browse files"),
+            tailLogBackup: l10n.t("Tail-log backup"),
+            files: l10n.t("Files"),
         };
     }
 }

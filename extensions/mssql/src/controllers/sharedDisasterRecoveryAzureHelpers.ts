@@ -300,6 +300,8 @@ export async function loadAzureComponentHelper(
         case "blobContainerId":
             state = await loadBlobContainerComponent(state);
             break;
+        default:
+            return state;
     }
 
     viewModel = state.viewModel.model as unknown as DisasterRecoveryViewModel;
