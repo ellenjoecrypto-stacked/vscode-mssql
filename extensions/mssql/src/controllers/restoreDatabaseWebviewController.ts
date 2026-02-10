@@ -30,7 +30,6 @@ import {
     RestoreDatabaseViewModel,
     RestoreInfo,
     RestoreType,
-    RestorePlanResponse,
     RestoreResponse,
     RestoreParams,
 } from "../sharedInterfaces/restore";
@@ -42,16 +41,19 @@ import {
     reloadAzureComponents,
 } from "./sharedDisasterRecoveryAzureHelpers";
 import { ApiStatus } from "../sharedInterfaces/webview";
-import { MediaDeviceType } from "../sharedInterfaces/backup";
+import { BackupFile, MediaDeviceType } from "../sharedInterfaces/backup";
 import { TaskExecutionMode } from "../sharedInterfaces/schemaCompare";
 import { TreeNodeInfo } from "../objectExplorer/nodes/treeNodeInfo";
-import { getErrorMessage } from "../utils/utils";
+import { getExpirationDateForSas } from "../utils/utils";
 import { VsCodeAzureHelper } from "../connectionconfig/azureHelpers";
 import { BlobItem } from "@azure/storage-blob";
 import { registerFileBrowserReducers } from "./fileBrowserUtils";
 import { FileBrowserReducers, FileBrowserWebviewState } from "../sharedInterfaces/fileBrowser";
 import { ReactWebviewPanelController } from "./reactWebviewPanelController";
 import { getCloudProviderSettings } from "../azure/providerSettings";
+import { SimpleExecuteResult } from "vscode-mssql";
+import { RequestType } from "vscode-languageclient";
+import SqlToolsServiceClient from "../languageservice/serviceclient";
 
 export class RestoreDatabaseWebviewController extends ObjectManagementWebviewController<
     RestoreDatabaseFormState,
@@ -62,6 +64,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         context: vscode.ExtensionContext,
         vscodeWrapper: VscodeWrapper,
         objectManagementService: ObjectManagementService,
+        private client: SqlToolsServiceClient,
         private connectionManager: ConnectionManager,
         private fileBrowserService: FileBrowserService,
         private azureBlobService: AzureBlobService,
@@ -83,9 +86,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
 
     protected async initializeDialog(): Promise<void> {
         let restoreViewModel = new RestoreDatabaseViewModel();
-        this.state.viewModel.model = restoreViewModel;
-        // Make sure the load state is set
-        this.updateState();
+        this.updateViewModel(restoreViewModel);
 
         restoreViewModel.serverName = this.serverName;
 
@@ -126,8 +127,11 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         }));
         this.state.formComponents["targetDatabaseName"].options = targetDatabaseOptions;
         this.state.formState.targetDatabaseName = this.state.formState.sourceDatabaseName;
+
+        // Set Azure related defaults
         restoreViewModel.azureComponentStatuses["blob"] = ApiStatus.NotStarted;
 
+        // Set initial form state
         this.state.formState = {
             ...this.state.formState,
             relocateDbFiles: false,
@@ -143,33 +147,19 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
             logFileFolder: restoreConfigInfo.logFileFolder,
         };
 
+        // Get credential names in server
+        restoreViewModel.credentialNames = await this.getCredentialNames();
+
+        // Create restore connection context
         await this.createRestoreConnectionContext(this.state.formState.sourceDatabaseName);
 
-        this.state.viewModel.model = restoreViewModel;
-        try {
-            restoreViewModel.restorePlan = await this.getRestorePlan(false);
-            restoreViewModel.restorePlanLoadStatus = ApiStatus.Loaded;
-
-            // Set default values in form state based on restore plan defaults
-            restoreViewModel = this.handlePlanUpdate(true, restoreViewModel);
-
-            // Set restore form state props dependent on restore plan details
-            this.state.formState = {
-                ...this.state.formState,
-                tailLogBackupFile:
-                    restoreViewModel.restorePlan.planDetails.tailLogBackupFile.defaultValue,
-                standbyFile: restoreViewModel.restorePlan.planDetails.standbyFile.defaultValue,
-            };
-        } catch (error) {
-            restoreViewModel.restorePlanLoadStatus = ApiStatus.Error;
-            restoreViewModel.errorMessage = getErrorMessage(error);
-        }
+        this.getRestorePlan(false).then((state) => {
+            restoreViewModel = this.setDefaultFormValuesFromPlan(state);
+            this.updateViewModel(restoreViewModel, state);
+        });
 
         this.registerRestoreRpcHandlers();
         restoreViewModel.loadState = ApiStatus.Loaded;
-
-        console.log(this.fileBrowserService);
-        console.log(this.azureBlobService);
 
         this.updateState();
     }
@@ -239,34 +229,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                     payload.event.propertyName === "sourceDatabaseName" ||
                     payload.event.propertyName === "blob"
                 ) {
-                    const restoreViewModel = this.restoreViewModel(state);
-                    if (payload.event.propertyName === "blob") {
-                        restoreViewModel.restoreUrl = this.getRestoreUrl(
-                            state.formState,
-                            restoreViewModel,
-                        );
-                    }
-                    restoreViewModel.restorePlanLoadStatus = ApiStatus.Loading;
-                    state.viewModel.model = restoreViewModel;
-                    this.updateState();
-
-                    restoreViewModel.restorePlan = await this.getRestorePlan(
-                        payload.event.propertyName === "blob",
-                    );
-                    if (payload.event.propertyName === "blob") {
-                        state.formState.sourceDatabaseName =
-                            restoreViewModel.restorePlan.planDetails.sourceDatabaseName.currentValue;
-                        const targetDbName =
-                            restoreViewModel.restorePlan.planDetails.targetDatabaseName
-                                .currentValue;
-                        const targetDbOptions = state.formComponents["targetDatabaseName"].options;
-                        if (!targetDbOptions.find((db) => db.value === targetDbName)) {
-                            state.formState.targetDatabaseName =
-                                restoreViewModel.restorePlan.planDetails.targetDatabaseName.currentValue;
-                        }
-                    }
-                    restoreViewModel.restorePlanLoadStatus = ApiStatus.Loaded;
-                    state.viewModel.model = restoreViewModel;
+                    void this.getRestorePlan(payload.event.propertyName === "blob", state);
                 }
             }
             return state;
@@ -281,26 +244,11 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                 state = await this.loadBlobComponent(
                     state as ObjectManagementWebviewState<RestoreDatabaseFormState>,
                 );
-
-                const viewModel = state.viewModel.model as RestoreDatabaseViewModel;
-
-                viewModel.restorePlanLoadStatus = ApiStatus.Loading;
+                let viewModel = this.restoreViewModel(state);
                 viewModel.azureComponentStatuses[payload.componentName] = ApiStatus.Loaded;
-                state.viewModel.model = viewModel;
-                this.updateState();
+                this.updateViewModel(viewModel, state);
 
-                viewModel.restorePlan = await this.getRestorePlan(true);
-                state.formState.sourceDatabaseName =
-                    viewModel.restorePlan.planDetails.sourceDatabaseName.currentValue;
-                const targetDbName =
-                    viewModel.restorePlan.planDetails.targetDatabaseName.currentValue;
-                const targetDbOptions = state.formComponents["targetDatabaseName"].options;
-                if (!targetDbOptions.find((db) => db.value === targetDbName)) {
-                    state.formState.targetDatabaseName =
-                        viewModel.restorePlan.planDetails.targetDatabaseName.currentValue;
-                }
-                viewModel.restorePlanLoadStatus = ApiStatus.Loaded;
-                state.viewModel.model = viewModel;
+                void this.getRestorePlan(true, state);
                 return state;
             } else {
                 const loadResult = await loadAzureComponentHelper(
@@ -312,10 +260,13 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         });
 
         this.registerReducer("setRestoreType", async (state, payload) => {
-            const restoreViewModel = state.viewModel.model as RestoreDatabaseViewModel;
+            state.formErrors = [];
+
+            const restoreViewModel = this.restoreViewModel(state);
             restoreViewModel.restoreType = payload.restoreType;
-            state.viewModel.model = restoreViewModel;
-            return state;
+            restoreViewModel.restorePlan.canRestore = true;
+
+            return this.updateViewModel(restoreViewModel, state);
         });
 
         this.registerReducer("restoreDatabase", async (state, _payload) => {
@@ -333,8 +284,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
             restoreViewModel.backupFiles = restoreViewModel.backupFiles.filter(
                 (file) => file.filePath !== payload.filePath,
             );
-            state.viewModel.model = restoreViewModel;
-            return state;
+            return this.updateViewModel(restoreViewModel, state);
         });
 
         registerFileBrowserReducers(
@@ -350,22 +300,13 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
             if (!payload.propertyName) {
                 const paths = restoreViewModel.backupFiles.map((f) => f.filePath);
                 if (!paths.includes(payload.selectedPath)) {
-                    restoreViewModel.backupFiles.push({
+                    const newFile: BackupFile = {
                         filePath: payload.selectedPath,
                         isExisting: true,
-                    });
+                    };
+                    restoreViewModel.backupFiles.push(newFile);
+                    void this.getRestorePlan(true, state);
                 }
-
-                restoreViewModel.restorePlanLoadStatus = ApiStatus.Loading;
-                state.viewModel.model = restoreViewModel;
-                this.updateState();
-
-                restoreViewModel.restorePlan = await this.getRestorePlan(true);
-                state.formState.sourceDatabaseName =
-                    restoreViewModel.restorePlan.planDetails.sourceDatabaseName.currentValue;
-                state.formState.targetDatabaseName =
-                    restoreViewModel.restorePlan.planDetails.targetDatabaseName.currentValue;
-                restoreViewModel.restorePlanLoadStatus = ApiStatus.Loaded;
             } else {
                 if (payload.propertyName in state.formState) {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -375,11 +316,11 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                     (restoreViewModel[payload.propertyName] as any) = payload.selectedPath;
                 }
             }
-            state.viewModel.model = restoreViewModel;
-            return state;
+            return this.updateViewModel(restoreViewModel, state);
         });
     }
 
+    //#region Object Management overrides and helpers
     protected get helpLink(): string {
         return restoreDatabaseHelpLink;
     }
@@ -410,6 +351,16 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         const webviewState = state ?? this.state;
         return webviewState.viewModel.model as RestoreDatabaseViewModel;
     }
+
+    private updateViewModel(
+        updatedViewModel: RestoreDatabaseViewModel,
+        state?: ObjectManagementWebviewState<RestoreDatabaseFormState>,
+    ): ObjectManagementWebviewState<RestoreDatabaseFormState> {
+        this.state.viewModel.model = updatedViewModel;
+        this.updateState(state);
+        return this.state;
+    }
+    //#endregion
 
     //#region Form Helpers
     protected setFormComponents(): Record<
@@ -692,12 +643,51 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
     //#endregion
 
     private async restoreHelper(taskMode: TaskExecutionMode): Promise<RestoreResponse> {
-        const params = this.getRestoreParams(taskMode, false, false);
+        const params = await this.getRestoreParams(taskMode, false, false);
         return await this.objectManagementService.restoreDatabase(params);
     }
-    private async getRestorePlan(useDefaults: boolean): Promise<RestorePlanResponse> {
-        const params = this.getRestoreParams(TaskExecutionMode.execute, true, useDefaults);
-        return await this.objectManagementService.getRestorePlan(params);
+
+    private async getRestorePlan(
+        useDefaults: boolean,
+        currentState?: ObjectManagementWebviewState<RestoreDatabaseFormState>,
+    ): Promise<ObjectManagementWebviewState<RestoreDatabaseFormState>> {
+        const state = currentState ?? this.state;
+        const restoreViewModel = this.restoreViewModel(state);
+
+        if (restoreViewModel.restorePlanStatus === ApiStatus.Loading) {
+            void this.objectManagementService.cancelRestorePlan(
+                restoreViewModel.cachedRestorePlanParams,
+            );
+        }
+        restoreViewModel.restorePlanStatus = ApiStatus.Loading;
+        this.updateViewModel(restoreViewModel, state);
+
+        const params = await this.getRestoreParams(TaskExecutionMode.execute, true, useDefaults);
+        const plan = await this.objectManagementService.getRestorePlan(params);
+        restoreViewModel.cachedRestorePlanParams = params;
+        restoreViewModel.restorePlan = plan;
+
+        const sourceDatabaseName = plan.planDetails.sourceDatabaseName.currentValue;
+        const targetDatabaseName = plan.planDetails.targetDatabaseName.currentValue;
+
+        if (
+            sourceDatabaseName &&
+            state.formComponents["sourceDatabaseName"].options.some(
+                (o) => o.value === sourceDatabaseName,
+            )
+        ) {
+            state.formState.sourceDatabaseName = sourceDatabaseName;
+        }
+        if (
+            targetDatabaseName &&
+            state.formComponents["targetDatabaseName"].options.some(
+                (o) => o.value === targetDatabaseName,
+            )
+        ) {
+            state.formState.targetDatabaseName = targetDatabaseName;
+        }
+        restoreViewModel.restorePlanStatus = plan.canRestore ? ApiStatus.Loaded : ApiStatus.Error;
+        return this.updateViewModel(restoreViewModel, state);
     }
 
     private async createRestoreConnectionContext(databaseName: string): Promise<void> {
@@ -719,29 +709,39 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         this.state.ownerUri = databaseConnectionUri;
     }
 
-    private getRestoreParams(
+    private async getRestoreParams(
         taskMode: TaskExecutionMode,
         shouldOverwrite: boolean,
         useDefaults: boolean,
-    ): RestoreParams {
-        let restoreViewModel = this.restoreViewModel();
+        currentState?: ObjectManagementWebviewState<RestoreDatabaseFormState>,
+    ): Promise<RestoreParams> {
+        const state = currentState ?? this.state;
+        let restoreViewModel = this.restoreViewModel(state);
         const restoreFromDatabase = restoreViewModel.restoreType === RestoreType.Database;
 
         let backupFilePaths = null;
         if (restoreViewModel.restoreType === RestoreType.BackupFile) {
             backupFilePaths = restoreViewModel.backupFiles.map((f) => f.filePath).join(",");
         } else if (restoreViewModel.restoreType === RestoreType.Url) {
-            backupFilePaths = this.getRestoreUrl(this.state.formState, restoreViewModel);
+            backupFilePaths = await this.getRestoreUrl(state.formState, restoreViewModel);
         }
 
         let backupSets = null;
         if (!shouldOverwrite && restoreViewModel.restorePlan) {
             backupSets = restoreViewModel.restorePlan.backupSetsToRestore?.map((bs) => bs.id);
         }
+
+        await this.createSasKeyIfNeeded(restoreViewModel, state);
+
+        const sourceDatabaseName = useDefaults ? null : state.formState.sourceDatabaseName;
+        if (!useDefaults && sourceDatabaseName && !state.ownerUri.startsWith(sourceDatabaseName)) {
+            await this.createRestoreConnectionContext(sourceDatabaseName);
+        }
+
         const restoreInfo: RestoreInfo = {
-            targetDatabaseName: useDefaults ? "master" : this.state.formState.targetDatabaseName,
-            sourceDatabaseName: useDefaults ? null : this.state.formState.sourceDatabaseName,
-            relocateDbFiles: this.state.formState.relocateDbFiles,
+            targetDatabaseName: useDefaults ? "master" : state.formState.targetDatabaseName,
+            sourceDatabaseName: sourceDatabaseName,
+            relocateDbFiles: state.formState.relocateDbFiles,
             readHeaderFromMedia: restoreFromDatabase ? false : true,
             overwriteTargetDatabase: shouldOverwrite,
             backupFilePaths: backupFilePaths,
@@ -754,7 +754,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
 
         const options: { [key: string]: any } = {};
         if (restoreViewModel.restorePlan) {
-            restoreViewModel = this.handlePlanUpdate(false, restoreViewModel);
+            restoreViewModel = this.updatePlanFromState(restoreViewModel, state);
 
             for (const key in restoreViewModel.restorePlan.planDetails) {
                 options[key] = restoreViewModel.restorePlan.planDetails[key];
@@ -766,48 +766,52 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
 
         const params: RestoreParams = {
             ...restoreInfo,
-            ownerUri: useDefaults ? this.node.sessionId : this.state.ownerUri,
+            ownerUri: useDefaults ? this.node.sessionId : state.ownerUri,
             options: options,
             taskExecutionMode: taskMode,
         };
         return params;
     }
 
-    private handlePlanUpdate(
-        shouldUpdateState: boolean,
-        restoreViewModel?: RestoreDatabaseViewModel,
+    private updatePlanFromState(
+        restoreViewModel: RestoreDatabaseViewModel,
+        currentState?: ObjectManagementWebviewState<RestoreDatabaseFormState>,
     ): RestoreDatabaseViewModel {
-        if (restoreViewModel === undefined) {
-            restoreViewModel = this.restoreViewModel();
+        const state = currentState ?? this.state;
+        for (const key in state.formState) {
+            if (key in restoreViewModel.restorePlan?.planDetails) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                restoreViewModel.restorePlan.planDetails[key].currentValue =
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    state.formState[key] as any;
+            }
         }
-        if (shouldUpdateState) {
-            for (const key in restoreViewModel.restorePlan?.planDetails) {
-                if (key in this.state.formState) {
+        for (const key in restoreViewModel) {
+            if (key in restoreViewModel.restorePlan?.planDetails) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                restoreViewModel.restorePlan.planDetails[key].currentValue =
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (this.state.formState[key] as any) =
-                        restoreViewModel.restorePlan?.planDetails[key].defaultValue;
-                } else if (key in restoreViewModel) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    (restoreViewModel[key] as any) =
-                        restoreViewModel.restorePlan?.planDetails[key].defaultValue;
-                }
+                    restoreViewModel[key] as any;
             }
-        } else {
-            for (const key in this.state.formState) {
-                if (key in restoreViewModel.restorePlan?.planDetails) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    restoreViewModel.restorePlan.planDetails[key].currentValue =
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        this.state.formState[key] as any;
-                }
-            }
-            for (const key in restoreViewModel) {
-                if (key in restoreViewModel.restorePlan?.planDetails) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    restoreViewModel.restorePlan.planDetails[key].currentValue =
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        restoreViewModel[key] as any;
-                }
+        }
+
+        return restoreViewModel;
+    }
+
+    private setDefaultFormValuesFromPlan(
+        currentState?: ObjectManagementWebviewState<RestoreDatabaseFormState>,
+    ): RestoreDatabaseViewModel {
+        const state = currentState ?? this.state;
+        const restoreViewModel = this.restoreViewModel(state);
+        for (const key in restoreViewModel.restorePlan?.planDetails) {
+            if (key in state.formState) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (state.formState[key] as any) =
+                    restoreViewModel.restorePlan?.planDetails[key].defaultValue;
+            } else if (key in restoreViewModel) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (restoreViewModel[key] as any) =
+                    restoreViewModel.restorePlan?.planDetails[key].defaultValue;
             }
         }
         return restoreViewModel;
@@ -874,6 +878,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
     ): string {
         const accountEndpoint =
             getCloudProviderSettings().settings.azureStorageResource.endpoint.replace(https, "");
+
         const storageAccount = restoreViewModel.storageAccounts.find(
             (sa) => sa.id === formState.storageAccountId,
         );
@@ -881,8 +886,93 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
             (bc) => bc.id === formState.blobContainerId,
         );
 
-        const blobContainerUrl = `${https}${storageAccount.name}.${accountEndpoint}${blobContainer.name}`;
-        const backupUrl = `${blobContainerUrl}/${formState.blob}`;
-        return backupUrl;
+        return `${https}${storageAccount.name}.${accountEndpoint}${blobContainer.name}/${formState.blob}`;
+    }
+
+    private async getCredentialNames(): Promise<string[]> {
+        const getCredsQuery = `
+            SELECT name
+            FROM sys.credentials`;
+
+        const result = await this.client.sendRequest(
+            new RequestType<
+                { ownerUri: string; queryString: string },
+                SimpleExecuteResult,
+                void,
+                void
+            >("query/simpleexecute"),
+            {
+                ownerUri: this.node.sessionId,
+                queryString: getCredsQuery,
+            },
+        );
+
+        if (!result || !result.rows || result.rows.length === 0) {
+            return [];
+        }
+
+        const credentialNames: string[] = [];
+        for (const row of result.rows) {
+            if (row && row.length > 0 && row[0] && !row[0].isNull) {
+                const credName = row[0].displayValue.trim();
+                if (credName) {
+                    credentialNames.push(credName);
+                }
+            }
+        }
+        return credentialNames;
+    }
+
+    private async createSasKeyIfNeeded(
+        restoreViewModel: RestoreDatabaseViewModel,
+        currentState?: ObjectManagementWebviewState<RestoreDatabaseFormState>,
+    ): Promise<void> {
+        const state = currentState ?? this.state;
+        if (restoreViewModel.restoreType !== RestoreType.Url) {
+            return;
+        }
+
+        if (!restoreViewModel.restoreUrl) {
+            restoreViewModel.restoreUrl = this.getRestoreUrl(state.formState, restoreViewModel);
+        }
+
+        const blobContainerUrl = restoreViewModel.restoreUrl.substring(
+            0,
+            restoreViewModel.restoreUrl.lastIndexOf("/"),
+        );
+
+        if (!restoreViewModel.credentialNames.includes(blobContainerUrl)) {
+            const subscription = restoreViewModel.subscriptions.find(
+                (s) => s.subscriptionId === state.formState.subscriptionId,
+            );
+            const storageAccount = restoreViewModel.storageAccounts.find(
+                (sa) => sa.id === state.formState.storageAccountId,
+            );
+
+            if (!subscription || !storageAccount) {
+                return;
+            }
+
+            let sasKeyResult;
+            try {
+                sasKeyResult = await VsCodeAzureHelper.getStorageAccountKeys(
+                    subscription,
+                    storageAccount,
+                );
+                void this.azureBlobService.createSas(
+                    this.connectionUri,
+                    blobContainerUrl,
+                    sasKeyResult.keys[0].value,
+                    storageAccount.name,
+                    getExpirationDateForSas(),
+                );
+
+                restoreViewModel.credentialNames.push(blobContainerUrl);
+            } catch (error) {
+                vscode.window.showErrorMessage(
+                    LocConstants.BackupDatabase.generatingSASKeyFailedWithError(error.message),
+                );
+            }
+        }
     }
 }

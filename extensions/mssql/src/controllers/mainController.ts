@@ -1952,6 +1952,7 @@ export default class MainController implements vscode.Disposable {
                             this._context,
                             this._vscodeWrapper,
                             this.objectManagementService,
+                            SqlToolsServerClient.instance,
                             this._connectionMgr,
                             this.fileBrowserService,
                             this.azureBlobService,

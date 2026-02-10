@@ -298,6 +298,7 @@ export interface BackupDatabaseFormState extends DisasterRecoveryAzureFormState 
 export interface BackupFile {
     filePath: string;
     isExisting: boolean;
+    errorMessage?: string;
 }
 
 export enum BackupType {

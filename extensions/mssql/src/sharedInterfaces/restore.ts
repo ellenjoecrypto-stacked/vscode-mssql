@@ -235,9 +235,13 @@ export class RestoreDatabaseViewModel extends DisasterRecoveryViewModel {
     restoreUrl: string = "";
 
     restorePlan: RestorePlanResponse | undefined = undefined;
-    restorePlanLoadStatus: ApiStatus = ApiStatus.Loading;
+    restorePlanStatus: ApiStatus = ApiStatus.NotStarted;
 
     blobs: BlobItem[] = [];
+
+    credentialNames: string[] = [];
+
+    cachedRestorePlanParams: RestoreParams | undefined = undefined;
 }
 
 export interface RestoreDatabaseParams {

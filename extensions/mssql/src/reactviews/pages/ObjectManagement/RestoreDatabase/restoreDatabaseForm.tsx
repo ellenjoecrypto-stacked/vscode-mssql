@@ -357,15 +357,20 @@ export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, set
                         <div className={classes.fileDiv}>
                             <div className={classes.fileList}>
                                 {restoreViewModel.backupFiles.map((file, index) => (
-                                    <BackupFileCard
-                                        key={file.filePath}
-                                        backupFiles={restoreViewModel.backupFiles}
-                                        file={file}
-                                        index={index}
-                                        fileErrors={fileErrors}
-                                        setFileErrors={setFileErrors}
-                                        removeBackupFile={context.removeBackupFile}
-                                    />
+                                    <div key={file.filePath}>
+                                        <Field
+                                            validationMessage={file.errorMessage}
+                                            validationState={file.errorMessage ? "none" : "error"}>
+                                            <BackupFileCard
+                                                backupFiles={restoreViewModel.backupFiles}
+                                                file={file}
+                                                index={index}
+                                                fileErrors={fileErrors}
+                                                setFileErrors={setFileErrors}
+                                                removeBackupFile={context.removeBackupFile}
+                                            />
+                                        </Field>
+                                    </div>
                                 ))}
                             </div>
                             <div className={classes.fileButtons}>
@@ -386,6 +391,18 @@ export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, set
                 renderFormFields(RestoreType.Database)
             )}
             {renderFormFields()}
+            <div>
+                {restoreViewModel.restorePlanStatus === ApiStatus.Error ? (
+                    <Text size={300}>
+                        {restoreViewModel.errorMessage}
+                    </Text>
+                ) : restoreViewModel.restorePlanStatus === ApiStatus.Loading ? (
+                    <Spinner size="extra-tiny" />
+                ) : (
+                    <div>{restoreViewModel.restorePlan?.backupSetsToRestore.length}</div>
+                )}
+            </div>
+
             <AdvancedOptionsDrawer
                 isAdvancedDrawerOpen={isAdvancedDrawerOpen}
                 setIsAdvancedDrawerOpen={setIsAdvancedDrawerOpen}

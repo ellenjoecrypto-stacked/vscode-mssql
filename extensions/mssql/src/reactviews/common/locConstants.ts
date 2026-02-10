@@ -1837,9 +1837,14 @@ export class LocConstants {
 
     public get fileBrowser() {
         return {
-            fileBrowserTitle: l10n.t("Select a file"),
+            fileBrowserFileTitle: l10n.t("Select a file"),
+            fileBrowserFolderTitle: l10n.t("Select a folder"),
+            folderRequired: l10n.t("Folder is required"),
+            fileRequired: l10n.t("File is required"),
             selectedPath: l10n.t("Selected Path"),
             filesOfType: l10n.t("Files of Type"),
+            pleaseChooseAFile: l10n.t("Please choose a file"),
+            pleaseChooseAFolder: l10n.t("Please choose a folder"),
         };
     }
 

@@ -21,6 +21,7 @@ import {
     TreeItem,
     TreeItemLayout,
     Label,
+    Field,
 } from "@fluentui/react-components";
 import { locConstants as Loc } from "./locConstants";
 import { KeyCode } from "./keys";
@@ -158,6 +159,19 @@ export const FileBrowserDialog = ({
         closeDialog();
     };
 
+    const getFilePathValidationMessage = (path: string, foldersOnly: boolean): string => {
+        if (path.trim() === "") {
+            return showFoldersOnly ? Loc.fileBrowser.folderRequired : Loc.fileBrowser.fileRequired;
+        }
+        const isFolder = !path.includes(".");
+        if (foldersOnly && !isFolder) {
+            return Loc.fileBrowser.pleaseChooseAFolder;
+        } else if (!foldersOnly && isFolder) {
+            return Loc.fileBrowser.pleaseChooseAFile;
+        }
+        return "";
+    };
+
     return (
         <Dialog open={true /* standalone dialog always open*/}>
             <DialogSurface
@@ -170,7 +184,9 @@ export const FileBrowserDialog = ({
                 <DialogBody className={classes.dialogBodyDiv}>
                     <DialogTitle className={classes.titleDiv}>
                         <Text className={classes.titleText}>
-                            {Loc.fileBrowser.fileBrowserTitle}
+                            {showFoldersOnly
+                                ? Loc.fileBrowser.fileBrowserFolderTitle
+                                : Loc.fileBrowser.fileBrowserFileTitle}
                         </Text>
                     </DialogTitle>
                     <DialogContent className={classes.contentDiv}>
@@ -191,12 +207,25 @@ export const FileBrowserDialog = ({
                         </Tree>
                         <div className={classes.formRow}>
                             <Label>{Loc.fileBrowser.selectedPath}</Label>
-                            <Input
-                                value={selectedPath}
-                                onChange={(_event, data) => {
-                                    setSelectedPath(data.value);
-                                }}
-                            />
+                            <Field
+                                validationMessage={getFilePathValidationMessage(
+                                    selectedPath,
+                                    showFoldersOnly,
+                                )}
+                                required
+                                validationState={
+                                    getFilePathValidationMessage(selectedPath, showFoldersOnly) ===
+                                    ""
+                                        ? "none"
+                                        : "error"
+                                }>
+                                <Input
+                                    value={selectedPath}
+                                    onChange={(_event, data) => {
+                                        setSelectedPath(data.value);
+                                    }}
+                                />
+                            </Field>
                         </div>
                         {!showFoldersOnly && ( // only show file filter if showing files instead of just folders
                             <div className={classes.formRow}>
@@ -220,7 +249,10 @@ export const FileBrowserDialog = ({
                             appearance="primary"
                             onClick={async () => {
                                 await handleSubmit();
-                            }}>
+                            }}
+                            disabled={
+                                getFilePathValidationMessage(selectedPath, showFoldersOnly) !== ""
+                            }>
                             {Loc.common.select}
                         </Button>
                         <Button

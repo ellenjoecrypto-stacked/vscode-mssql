@@ -135,9 +135,16 @@ export namespace RestorePlanRequest {
     );
 }
 
+export namespace CancelRestorePlanRequest {
+    export const type = new RequestType<RestoreParams, boolean, void, void>(
+        "restore/cancelrestoreplan",
+    );
+}
+
 export namespace RestoreRequest {
     export const type = new RequestType<RestoreParams, RestoreResponse, void, void>(
         "restore/restore",
     );
 }
+
 // #endregion

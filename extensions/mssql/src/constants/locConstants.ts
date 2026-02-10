@@ -2882,5 +2882,7 @@ export class RestoreDatabase {
     public static blob = l10n.t("Blob");
     public static selectABlob = l10n.t("Select a blob");
     public static blobIsRequired = l10n.t("Blob is required");
+    public static blobDatabaseError = l10n.t("Blob does not contain a valid database backup");
     public static noBlobsFound = l10n.t("No blobs found");
+    public static backupFileDatabaseError = l10n.t("Selected backup file does not contain a valid database backup");
 }

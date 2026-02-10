@@ -19,6 +19,7 @@ import {
     RestoreConfigInfoRequest,
     RestoreRequest,
     RestorePlanRequest,
+    CancelRestorePlanRequest,
 } from "../models/contracts/objectManagement";
 import {
     BackupConfigInfoResponse,
@@ -142,28 +143,27 @@ export class ObjectManagementService {
         }
     }
 
-    async getRestorePlan(
-        restoreParams: RestoreParams,
-    ): Promise<RestorePlanResponse> {
+    async getRestorePlan(restoreParams: RestoreParams): Promise<RestorePlanResponse> {
         try {
-            return await this._client.sendRequest(
-                RestorePlanRequest.type,
-                restoreParams,
-            );
+            return await this._client.sendRequest(RestorePlanRequest.type, restoreParams);
         } catch (e) {
             this._client.logger.error(e);
             throw e;
         }
     }
 
-    async restoreDatabase(
-        restoreParams: RestoreParams,
-    ): Promise<RestoreResponse> {
+    async cancelRestorePlan(restoreParams: RestoreParams): Promise<boolean> {
         try {
-            return await this._client.sendRequest(
-                RestoreRequest.type,
-                restoreParams,
-            );
+            return await this._client.sendRequest(CancelRestorePlanRequest.type, restoreParams);
+        } catch (e) {
+            this._client.logger.error(e);
+            throw e;
+        }
+    }
+
+    async restoreDatabase(restoreParams: RestoreParams): Promise<RestoreResponse> {
+        try {
+            return await this._client.sendRequest(RestoreRequest.type, restoreParams);
         } catch (e) {
             this._client.logger.error(e);
             throw e;
