@@ -5,7 +5,7 @@
 
 import { createContext, ReactNode } from "react";
 import { ObjectManagementWebviewState } from "../../../sharedInterfaces/objectManagement";
-import { useVscodeWebview2 } from "../../common/vscodeWebviewProvider2";
+import { useVscodeWebview } from "../../common/vscodeWebviewProvider";
 import { WebviewRpc } from "../../common/rpc";
 
 export interface ObjectManagementReactProvider<TReducers> {
@@ -23,7 +23,7 @@ interface ObjectManagementProviderProps {
 const ObjectManagementStateProvider = <TFormState = unknown, TReducers = unknown>({
     children,
 }: ObjectManagementProviderProps) => {
-    const { extensionRpc } = useVscodeWebview2<
+    const { extensionRpc } = useVscodeWebview<
         ObjectManagementWebviewState<TFormState>,
         TReducers
     >();

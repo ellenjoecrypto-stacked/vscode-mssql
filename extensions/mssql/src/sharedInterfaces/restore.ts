@@ -8,11 +8,11 @@ import {
     DisasterRecoveryAzureFormState,
     DisasterRecoveryViewModel,
     DisasterRecoveryAzureProvider,
+    ObjectManagementWebviewState,
 } from "./objectManagement";
 import { BackupFile, MediaDeviceType } from "./backup";
 import { FileBrowserProvider, FileBrowserReducers } from "./fileBrowser";
 import { FormContextProps, FormReducers } from "./form";
-import { ObjectManagementFormItemSpec, ObjectManagementWebviewState } from "./objectManagement";
 import { TaskExecutionMode } from "./schemaCompare";
 import { ApiStatus } from "./webview";
 import { BlobItem } from "@azure/storage-blob";
@@ -275,9 +275,7 @@ export interface RestoreDatabaseFormState extends DisasterRecoveryAzureFormState
 }
 
 export interface RestoreDatabaseReducers<TFormState>
-    extends FormReducers<TFormState>,
-        FileBrowserReducers,
-        DisasterRecoveryAzureReducers {
+    extends FormReducers<TFormState>, FileBrowserReducers, DisasterRecoveryAzureReducers {
     restoreDatabase: {};
 
     /**
@@ -303,11 +301,8 @@ export interface RestoreDatabaseReducers<TFormState>
 }
 
 export interface RestoreDatabaseProvider
-    extends FormContextProps<
-            RestoreDatabaseFormState,
-            ObjectManagementWebviewState<RestoreDatabaseFormState>,
-            ObjectManagementFormItemSpec<RestoreDatabaseFormState>
-        >,
+    extends
+        FormContextProps<RestoreDatabaseFormState>,
         FileBrowserProvider,
         DisasterRecoveryAzureProvider {
     /**

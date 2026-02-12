@@ -7,12 +7,12 @@ import { FormContextProps, FormReducers } from "./form";
 import { ApiStatus } from "./webview";
 import { FileBrowserProvider, FileBrowserReducers } from "./fileBrowser";
 import { TaskExecutionMode } from "./schemaCompare";
-import { ObjectManagementFormItemSpec, ObjectManagementWebviewState } from "./objectManagement";
 import {
     DisasterRecoveryAzureFormState,
     DisasterRecoveryAzureReducers,
     DisasterRecoveryViewModel,
     DisasterRecoveryAzureProvider,
+    ObjectManagementWebviewState,
 } from "./objectManagement";
 
 //#region Sql Tools Service Interfaces
@@ -196,9 +196,7 @@ export interface BackupDatabaseParams {
 }
 
 export interface BackupDatabaseReducers<TFormState>
-    extends FormReducers<TFormState>,
-        FileBrowserReducers,
-        DisasterRecoveryAzureReducers {
+    extends FormReducers<TFormState>, FileBrowserReducers, DisasterRecoveryAzureReducers {
     /**
      * Gets the database information associated with the backup operation
      */
@@ -239,11 +237,8 @@ export interface BackupDatabaseReducers<TFormState>
 }
 
 export interface BackupDatabaseProvider
-    extends FormContextProps<
-            BackupDatabaseFormState,
-            ObjectManagementWebviewState<BackupDatabaseFormState>,
-            ObjectManagementFormItemSpec<BackupDatabaseFormState>
-        >,
+    extends
+        FormContextProps<BackupDatabaseFormState>,
         FileBrowserProvider,
         DisasterRecoveryAzureProvider {
     /**

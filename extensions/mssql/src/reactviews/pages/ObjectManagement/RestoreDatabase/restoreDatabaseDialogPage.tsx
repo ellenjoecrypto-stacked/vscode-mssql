@@ -16,6 +16,7 @@ import {
 import { RestoreDatabaseContext } from "./restoreDatabaseStateProvider";
 import { RestoreDatabaseViewModel } from "../../../../sharedInterfaces/restore";
 import { RestoreDatabaseForm } from "./restoreDatabaseForm";
+import { useRestoreDatabaseSelector } from "./restoreDatabaseSelector";
 
 const useStyles = makeStyles({
     outerDiv: {
@@ -41,17 +42,22 @@ const useStyles = makeStyles({
 export const RestoreDatabaseDialogPage = () => {
     const classes = useStyles();
     const context = useContext(RestoreDatabaseContext);
-    const state = context?.state;
 
-    if (!context || !state) {
+    if (!context) {
         return null;
     }
 
-    const restoreViewModel = state.viewModel.model as RestoreDatabaseViewModel;
+    const loadState = useRestoreDatabaseSelector(
+        (s) => (s.viewModel.model as RestoreDatabaseViewModel).loadState,
+    );
+    const errorMessage = useRestoreDatabaseSelector(
+        (s) => (s.viewModel.model as RestoreDatabaseViewModel).errorMessage,
+    );
+
     const [fileErrors, setFileErrors] = useState<number[]>([]);
 
     const renderMainContent = () => {
-        switch (restoreViewModel?.loadState) {
+        switch (loadState) {
             case ApiStatus.Loading:
                 return (
                     <div className={classes.spinnerDiv}>
@@ -66,7 +72,7 @@ export const RestoreDatabaseDialogPage = () => {
                     <ObjectManagementDialog
                         title={undefined}
                         description={undefined}
-                        errorMessage={state?.errorMessage}
+                        errorMessage={errorMessage}
                         primaryLabel={locConstants.restoreDatabase.restore}
                         cancelLabel={locConstants.createDatabase.cancelButton}
                         helpLabel={locConstants.createDatabase.helpButton}
@@ -99,7 +105,7 @@ export const RestoreDatabaseDialogPage = () => {
                 return (
                     <div className={classes.spinnerDiv}>
                         <ErrorCircleRegular className={classes.errorIcon} />
-                        <Text size={400}>{state?.errorMessage ?? ""}</Text>
+                        <Text size={400}>{errorMessage ?? ""}</Text>
                     </div>
                 );
         }

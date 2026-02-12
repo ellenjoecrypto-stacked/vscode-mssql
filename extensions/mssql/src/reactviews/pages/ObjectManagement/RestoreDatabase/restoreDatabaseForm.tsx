@@ -39,6 +39,8 @@ import { BackupFormProps } from "../BackupDatabase/backupDatabaseForm";
 import { FileBrowserProvider } from "../../../../sharedInterfaces/fileBrowser";
 import { FileBrowserDialog } from "../../../common/FileBrowserDialog";
 import { AdvancedOptionsDrawer } from "./restoreAdvancedOptions";
+import { useRestoreDatabaseSelector } from "./restoreDatabaseSelector";
+import { useVscodeWebview } from "../../../common/vscodeWebviewProvider";
 
 const useStyles = makeStyles({
     outerDiv: {
@@ -120,23 +122,32 @@ const restoreDarkIcon = require("../../../../../media/restore_dark.svg");
 export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setFileErrors }) => {
     const classes = useStyles();
     const context = useContext(RestoreDatabaseContext);
-    const state = context?.state;
+    const restoreViewModel = useRestoreDatabaseSelector(
+        (s) => s.viewModel.model as RestoreDatabaseViewModel,
+    );
 
-    if (!context || !state) {
+    if (!context || !restoreViewModel) {
         return null;
     }
 
-    const restoreViewModel = state.viewModel.model as RestoreDatabaseViewModel;
+    const formComponents = useRestoreDatabaseSelector((s) => s.formComponents);
+    const formState = useRestoreDatabaseSelector((s) => s.formState);
+    const dialog = useRestoreDatabaseSelector((s) => s.dialog);
+    const fileBrowserState = useRestoreDatabaseSelector((s) => s.fileBrowserState);
+    const ownerUri = useRestoreDatabaseSelector((s) => s.ownerUri);
+    const defaultFileBrowserExpandPath = useRestoreDatabaseSelector(
+        (s) => s.defaultFileBrowserExpandPath,
+    );
+    const fileFilterOptions = useRestoreDatabaseSelector((s) => s.fileFilterOptions);
+
+    const { themeKind } = useVscodeWebview();
 
     const [restoreType, setRestoreType] = useState<RestoreType>(restoreViewModel.restoreType);
     const [isAdvancedDrawerOpen, setIsAdvancedDrawerOpen] = useState<boolean>(false);
 
     const formStyles = useFormStyles();
-    const formComponents = state.formComponents;
 
     const handleLoadAzureComponents = () => {
-        if (!context || !restoreViewModel) return;
-
         const azureComponents = Object.keys(restoreViewModel.azureComponentStatuses);
         const azureComponentToLoad = azureComponents.find(
             (component) =>
@@ -175,6 +186,7 @@ export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, set
                         RestoreDatabaseContextProps
                     >
                         context={context}
+                        formState={formState}
                         component={component}
                         idx={index}
                     />
@@ -213,6 +225,7 @@ export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, set
                             RestoreDatabaseContextProps
                         >
                             context={context}
+                            formState={formState}
                             component={component}
                             idx={index}
                         />
@@ -257,11 +270,7 @@ export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, set
                     style={{
                         padding: "10px",
                     }}
-                    src={
-                        context.themeKind === ColorThemeKind.Dark
-                            ? restoreDarkIcon
-                            : restoreLightIcon
-                    }
+                    src={themeKind === ColorThemeKind.Dark ? restoreDarkIcon : restoreLightIcon}
                     alt={`${locConstants.restoreDatabase.restoreDatabase} - ${restoreViewModel.serverName}`}
                     height={60}
                     width={60}
@@ -275,14 +284,14 @@ export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, set
                     {`${locConstants.restoreDatabase.restore} - ${restoreViewModel.serverName}`}
                 </Text>
             </div>
-            {state.dialog?.type === "fileBrowser" && state.fileBrowserState && (
+            {dialog?.type === "fileBrowser" && fileBrowserState && (
                 <FileBrowserDialog
-                    ownerUri={state.ownerUri}
-                    defaultFilePath={state.defaultFileBrowserExpandPath}
-                    fileTree={state.fileBrowserState.fileTree}
-                    showFoldersOnly={state.fileBrowserState.showFoldersOnly}
+                    ownerUri={ownerUri}
+                    defaultFilePath={defaultFileBrowserExpandPath}
+                    fileTree={fileBrowserState.fileTree}
+                    showFoldersOnly={fileBrowserState.showFoldersOnly}
                     provider={context as FileBrowserProvider}
-                    fileTypeOptions={state.fileFilterOptions}
+                    fileTypeOptions={fileFilterOptions}
                     closeDialog={() => context.toggleFileBrowserDialog(false, false)}
                 />
             )}
@@ -393,9 +402,7 @@ export const RestoreDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, set
             {renderFormFields()}
             <div>
                 {restoreViewModel.restorePlanStatus === ApiStatus.Error ? (
-                    <Text size={300}>
-                        {restoreViewModel.errorMessage}
-                    </Text>
+                    <Text size={300}>{restoreViewModel.errorMessage}</Text>
                 ) : restoreViewModel.restorePlanStatus === ApiStatus.Loading ? (
                     <Spinner size="extra-tiny" />
                 ) : (

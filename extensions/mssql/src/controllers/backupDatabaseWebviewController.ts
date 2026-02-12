@@ -9,6 +9,7 @@ import {
     BackupComponent,
     BackupCompression,
     BackupDatabaseFormState,
+    BackupConfigInfo,
     BackupDatabaseParams,
     BackupDatabaseReducers,
     BackupDatabaseViewModel,
@@ -43,7 +44,7 @@ import { FileBrowserReducers, FileBrowserWebviewState } from "../sharedInterface
 import { VsCodeAzureHelper } from "../connectionconfig/azureHelpers";
 import { getCloudProviderSettings } from "../azure/providerSettings";
 import { AzureBlobService } from "../models/contracts/azureBlob";
-import { getExpirationDateForSas } from "../utils/utils";
+import { getErrorMessage, getExpirationDateForSas } from "../utils/utils";
 import { TaskExecutionMode } from "../sharedInterfaces/schemaCompare";
 import { sendActionEvent } from "../telemetry/telemetry";
 import { TelemetryActions, TelemetryViews } from "../sharedInterfaces/telemetry";
@@ -86,6 +87,7 @@ export class BackupDatabaseWebviewController extends ObjectManagementWebviewCont
             objectManagementService,
             ObjectManagementDialogType.BackupDatabase,
             dialogTitle ?? LocConstants.BackupDatabase.backupDatabaseTitle(databaseName),
+            dialogTitle ?? LocConstants.BackupDatabase.backupDatabaseTitle(databaseName),
             "backupDatabaseDialog",
             connectionUri,
             serverName,
@@ -100,10 +102,28 @@ export class BackupDatabaseWebviewController extends ObjectManagementWebviewCont
         const backupModel = new BackupDatabaseViewModel();
         this.state.ownerUri = this.connectionUri;
 
+        // Make sure the backup load state is set, so the loading ui properly displays
+        this.state.viewModel.model = backupModel;
+        this.updateState();
+
         // Get backup config info; Gets the recovery model, default backup folder, and encryptors
-        const backupConfigInfo = (
-            await this.objectManagementService.getBackupConfigInfo(this.state.ownerUri)
-        )?.backupConfigInfo;
+        let backupConfigInfo: BackupConfigInfo;
+        let backupConfigError = "";
+        try {
+            backupConfigInfo = (
+                await this.objectManagementService.getBackupConfigInfo(this.state.ownerUri)
+            )?.backupConfigInfo;
+        } catch (error) {
+            backupConfigError = getErrorMessage(error);
+        }
+        if (backupConfigError || !backupConfigInfo) {
+            backupModel.loadState = ApiStatus.Error;
+            this.state.errorMessage =
+                backupConfigError || LocConstants.BackupDatabase.unableToLoadBackupConfig;
+            this.state.viewModel.model = backupModel;
+            this.updateState();
+            return;
+        }
 
         // File Browser setup
         this.state.defaultFileBrowserExpandPath = backupConfigInfo.defaultBackupFolder;
@@ -310,7 +330,7 @@ export class BackupDatabaseWebviewController extends ObjectManagementWebviewCont
         this.registerReducer("handleFileChange", async (state, payload) => {
             const backupViewModel = this.backupViewModel(state);
             const currentFilePath = backupViewModel.backupFiles[payload.index].filePath;
-            let newFilePath: string = "";
+            let newFilePath = "";
             if (payload.isFolderChange) {
                 newFilePath = `${payload.newValue}/${currentFilePath.substring(
                     currentFilePath.lastIndexOf("/") + 1,

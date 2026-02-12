@@ -36,6 +36,7 @@ import {
 } from "../../../../sharedInterfaces/restore";
 import { FileBrowserProvider } from "../../../../sharedInterfaces/fileBrowser";
 import { FileBrowserDialog } from "../../../common/FileBrowserDialog";
+import { useRestoreDatabaseSelector } from "./restoreDatabaseSelector";
 
 export const AdvancedOptionsDrawer = ({
     isAdvancedDrawerOpen,
@@ -45,9 +46,8 @@ export const AdvancedOptionsDrawer = ({
     setIsAdvancedDrawerOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
     const context = useContext(RestoreDatabaseContext);
-    const state = context?.state;
 
-    if (!context || !state) {
+    if (!context) {
         return;
     }
 
@@ -57,7 +57,19 @@ export const AdvancedOptionsDrawer = ({
 
     const accordionStyles = useAccordionStyles();
 
-    const restoreViewModel = state.viewModel.model as RestoreDatabaseViewModel;
+    const restoreViewModel = useRestoreDatabaseSelector(
+        (s) => s.viewModel.model as RestoreDatabaseViewModel,
+    );
+    const formComponents = useRestoreDatabaseSelector((s) => s.formComponents);
+    const formState = useRestoreDatabaseSelector((s) => s.formState);
+    const dialog = useRestoreDatabaseSelector((s) => s.dialog);
+    const fileBrowserState = useRestoreDatabaseSelector((s) => s.fileBrowserState);
+    const ownerUri = useRestoreDatabaseSelector((s) => s.ownerUri);
+    const defaultFileBrowserExpandPath = useRestoreDatabaseSelector(
+        (s) => s.defaultFileBrowserExpandPath,
+    );
+    const fileFilterOptions = useRestoreDatabaseSelector((s) => s.fileFilterOptions);
+
     const fileBrowserFields = [
         "dataFileFolder",
         "logFileFolder",
@@ -68,7 +80,7 @@ export const AdvancedOptionsDrawer = ({
     const advancedOptionsByGroup: Record<
         string,
         ObjectManagementFormItemSpec<RestoreDatabaseFormState>[]
-    > = Object.values(state.formComponents)
+    > = Object.values(formComponents)
         .filter((component): component is ObjectManagementFormItemSpec<RestoreDatabaseFormState> =>
             Boolean(component && component.isAdvancedOption),
         )
@@ -124,12 +136,12 @@ export const AdvancedOptionsDrawer = ({
             case "logFileFolder":
                 return (
                     restoreViewModel.restoreType === RestoreType.BackupFile &&
-                    state.formState.relocateDbFiles
+                    formState.relocateDbFiles
                 );
             case "standbyFile":
-                return state.formState.recoveryState === RecoveryState.Standby;
+                return formState.recoveryState === RecoveryState.Standby;
             case "tailLogBackupFile":
-                return state.formState.backupTailLog === true;
+                return formState.backupTailLog === true;
             default:
                 return false;
         }
@@ -137,14 +149,14 @@ export const AdvancedOptionsDrawer = ({
 
     return (
         <div>
-            {state.dialog?.type === "fileBrowser" && state.fileBrowserState && (
+            {dialog?.type === "fileBrowser" && fileBrowserState && (
                 <FileBrowserDialog
-                    ownerUri={state.ownerUri}
-                    defaultFilePath={state.defaultFileBrowserExpandPath}
-                    fileTree={state.fileBrowserState.fileTree}
-                    showFoldersOnly={state.fileBrowserState.showFoldersOnly}
+                    ownerUri={ownerUri}
+                    defaultFilePath={defaultFileBrowserExpandPath}
+                    fileTree={fileBrowserState.fileTree}
+                    showFoldersOnly={fileBrowserState.showFoldersOnly}
                     provider={context as FileBrowserProvider}
-                    fileTypeOptions={state.fileFilterOptions}
+                    fileTypeOptions={fileFilterOptions}
                     closeDialog={() => context.toggleFileBrowserDialog(false, false)}
                     propertyName={fileBrowserProp}
                 />
@@ -229,6 +241,7 @@ export const AdvancedOptionsDrawer = ({
                                                                         RestoreDatabaseContextProps
                                                                     >
                                                                         context={context}
+                                                                        formState={formState}
                                                                         component={option}
                                                                         props={
                                                                             option.componentProps ??

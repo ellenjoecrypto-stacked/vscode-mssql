@@ -26,7 +26,7 @@ interface RestoreDatabaseProviderProps {
 }
 
 const RestoreDatabaseStateProvider: React.FC<RestoreDatabaseProviderProps> = ({ children }) => {
-    const webviewState = useVscodeWebview<
+    const { extensionRpc } = useVscodeWebview<
         ObjectManagementWebviewState<RestoreDatabaseFormState>,
         RestoreDatabaseReducers<RestoreDatabaseFormState>
     >();
@@ -34,22 +34,19 @@ const RestoreDatabaseStateProvider: React.FC<RestoreDatabaseProviderProps> = ({ 
     return (
         <RestoreDatabaseContext.Provider
             value={{
-                extensionRpc: webviewState!.extensionRpc,
-                state: webviewState?.state as ObjectManagementWebviewState<RestoreDatabaseFormState>,
-                themeKind: webviewState?.themeKind,
-                keyBindings: webviewState?.keyBindings,
-                ...getCoreRPCs(webviewState),
+                extensionRpc,
+                ...getCoreRPCs(extensionRpc),
                 formAction(event) {
-                    webviewState?.extensionRpc.action("formAction", { event });
+                    extensionRpc.action("formAction", { event });
                 },
                 restoreDatabase: function (): void {
-                    webviewState?.extensionRpc.action("restoreDatabase", {});
+                    extensionRpc.action("restoreDatabase", {});
                 },
                 openRestoreScript: function (): void {
-                    webviewState?.extensionRpc.action("openRestoreScript", {});
+                    extensionRpc.action("openRestoreScript", {});
                 },
                 setRestoreType: function (restoreType: RestoreType): void {
-                    webviewState?.extensionRpc.action("setRestoreType", {
+                    extensionRpc.action("setRestoreType", {
                         restoreType,
                     });
                 },
@@ -60,7 +57,7 @@ const RestoreDatabaseStateProvider: React.FC<RestoreDatabaseProviderProps> = ({ 
                     changeFilter: boolean,
                     showFoldersOnly: boolean,
                 ): void {
-                    webviewState?.extensionRpc.action("openFileBrowser", {
+                    extensionRpc.action("openFileBrowser", {
                         ownerUri,
                         expandPath,
                         fileFilters,
@@ -69,35 +66,35 @@ const RestoreDatabaseStateProvider: React.FC<RestoreDatabaseProviderProps> = ({ 
                     });
                 },
                 expandNode(ownerUri: string, nodePath: string): void {
-                    webviewState?.extensionRpc.action("expandNode", {
+                    extensionRpc.action("expandNode", {
                         ownerUri,
                         nodePath,
                     });
                 },
                 submitFilePath(selectedPath: string, propertyName?: string): void {
-                    webviewState?.extensionRpc.action("submitFilePath", {
+                    extensionRpc.action("submitFilePath", {
                         selectedPath,
                         propertyName,
                     });
                 },
                 closeFileBrowser(ownerUri: string): void {
-                    webviewState?.extensionRpc.action("closeFileBrowser", {
+                    extensionRpc.action("closeFileBrowser", {
                         ownerUri,
                     });
                 },
                 toggleFileBrowserDialog(foldersOnly: boolean, shouldOpen: boolean): void {
-                    webviewState?.extensionRpc.action("toggleFileBrowserDialog", {
+                    extensionRpc.action("toggleFileBrowserDialog", {
                         foldersOnly,
                         shouldOpen,
                     });
                 },
                 loadAzureComponent(componentName: string): void {
-                    webviewState?.extensionRpc.action("loadAzureComponent", {
+                    extensionRpc.action("loadAzureComponent", {
                         componentName,
                     });
                 },
                 removeBackupFile: function (filePath: string): void {
-                    webviewState?.extensionRpc.action("removeBackupFile", {
+                    extensionRpc.action("removeBackupFile", {
                         filePath,
                     });
                 },

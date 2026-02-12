@@ -35,6 +35,8 @@ import {
     ObjectManagementFormItemSpec,
     ObjectManagementWebviewState,
 } from "../../../../sharedInterfaces/objectManagement";
+import { useBackupDatabaseSelector } from "./backupDatabaseSelector";
+import { useVscodeWebview } from "../../../common/vscodeWebviewProvider";
 
 const useStyles = makeStyles({
     outerDiv: {
@@ -121,17 +123,26 @@ export interface BackupFormProps {
 export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setFileErrors }) => {
     const classes = useStyles();
     const context = useContext(BackupDatabaseContext);
-    const state = context?.state;
+    const viewModel = useBackupDatabaseSelector((s) => s.viewModel);
+    const formComponents = useBackupDatabaseSelector((s) => s.formComponents);
+    const formState = useBackupDatabaseSelector((s) => s.formState);
+    const dialog = useBackupDatabaseSelector((s) => s.dialog);
+    const fileBrowserState = useBackupDatabaseSelector((s) => s.fileBrowserState);
+    const ownerUri = useBackupDatabaseSelector((s) => s.ownerUri);
+    const defaultFileBrowserExpandPath = useBackupDatabaseSelector(
+        (s) => s.defaultFileBrowserExpandPath,
+    );
+    const fileFilterOptions = useBackupDatabaseSelector((s) => s.fileFilterOptions);
+    const { themeKind } = useVscodeWebview();
 
-    if (!context || !state) {
+    if (!context || !viewModel) {
         return null;
     }
 
-    const backupViewModel = state.viewModel.model as BackupDatabaseViewModel;
+    const backupViewModel = viewModel.model as BackupDatabaseViewModel;
 
     const formStyles = useFormStyles();
     const [isAdvancedDrawerOpen, setIsAdvancedDrawerOpen] = useState(false);
-    const formComponents = state.formComponents;
 
     const renderFormFields = () =>
         Object.values(formComponents)
@@ -145,8 +156,8 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                             ? {
                                   width: component.componentWidth,
                                   maxWidth: component.componentWidth,
-                                  whiteSpace: "normal", // allows wrapping
-                                  overflowWrap: "break-word", // breaks long words if needed
+                                  whiteSpace: "normal",
+                                  overflowWrap: "break-word",
                                   wordBreak: "break-word",
                               }
                             : {}
@@ -158,6 +169,7 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                         BackupDatabaseContextProps
                     >
                         context={context}
+                        formState={formState}
                         component={component}
                         idx={index}
                     />
@@ -169,7 +181,6 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
             .filter((component) => component.groupName === url)
             .map((component, index) => {
                 const loadStatus = backupViewModel.azureComponentStatuses[component.propertyName];
-                // Trigger loading only if not started or loaded
                 if (loadStatus === ApiStatus.NotStarted) {
                     handleLoadAzureComponents();
                 }
@@ -183,8 +194,8 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                                 ? {
                                       width: component.componentWidth,
                                       maxWidth: component.componentWidth,
-                                      whiteSpace: "normal", // allows wrapping
-                                      overflowWrap: "break-word", // breaks long words if needed
+                                      whiteSpace: "normal",
+                                      overflowWrap: "break-word",
                                       wordBreak: "break-word",
                                   }
                                 : {}
@@ -196,6 +207,7 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                             BackupDatabaseContextProps
                         >
                             context={context}
+                            formState={formState}
                             component={component}
                             idx={index}
                         />
@@ -251,6 +263,7 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                         BackupDatabaseContextProps
                     >
                         context={context}
+                        formState={formState}
                         component={component}
                         idx={index}
                     />
@@ -283,11 +296,7 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                         style={{
                             padding: "10px",
                         }}
-                        src={
-                            context.themeKind === ColorThemeKind.Dark
-                                ? backupDarkIcon
-                                : backupLightIcon
-                        }
+                        src={themeKind === ColorThemeKind.Dark ? backupDarkIcon : backupLightIcon}
                         alt={`${locConstants.backupDatabase.backup} - ${backupViewModel.databaseName}`}
                         height={60}
                         width={60}
@@ -301,14 +310,14 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                         {`${locConstants.backupDatabase.backup} - ${backupViewModel.databaseName}`}
                     </Text>
                 </div>
-                {state.dialog?.type === "fileBrowser" && state.fileBrowserState && (
+                {dialog?.type === "fileBrowser" && fileBrowserState && (
                     <FileBrowserDialog
-                        ownerUri={state.ownerUri}
-                        defaultFilePath={state.defaultFileBrowserExpandPath}
-                        fileTree={state.fileBrowserState.fileTree}
-                        showFoldersOnly={state.fileBrowserState.showFoldersOnly}
+                        ownerUri={ownerUri}
+                        defaultFilePath={defaultFileBrowserExpandPath}
+                        fileTree={fileBrowserState.fileTree}
+                        showFoldersOnly={fileBrowserState.showFoldersOnly}
                         provider={context as FileBrowserProvider}
-                        fileTypeOptions={state.fileFilterOptions}
+                        fileTypeOptions={fileFilterOptions}
                         closeDialog={() => context.toggleFileBrowserDialog(false, false)}
                     />
                 )}
@@ -412,7 +421,7 @@ export const BackupDatabaseForm: React.FC<BackupFormProps> = ({ fileErrors, setF
                                 </div>
                             </div>
                         </Field>
-                        {!state.formComponents["mediaSet"]?.isAdvancedOption && renderMediaFields()}
+                        {!formComponents["mediaSet"]?.isAdvancedOption && renderMediaFields()}
                     </div>
                 )}
             </div>

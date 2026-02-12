@@ -32,6 +32,7 @@ import {
     RestoreType,
     RestoreResponse,
     RestoreParams,
+    RestorePlanResponse,
 } from "../sharedInterfaces/restore";
 import * as LocConstants from "../constants/locConstants";
 import { FormItemOptions, FormItemSpec, FormItemType } from "../sharedInterfaces/form";
@@ -44,7 +45,7 @@ import { ApiStatus } from "../sharedInterfaces/webview";
 import { BackupFile, MediaDeviceType } from "../sharedInterfaces/backup";
 import { TaskExecutionMode } from "../sharedInterfaces/schemaCompare";
 import { TreeNodeInfo } from "../objectExplorer/nodes/treeNodeInfo";
-import { getExpirationDateForSas } from "../utils/utils";
+import { getErrorMessage, getExpirationDateForSas } from "../utils/utils";
 import { VsCodeAzureHelper } from "../connectionconfig/azureHelpers";
 import { BlobItem } from "@azure/storage-blob";
 import { registerFileBrowserReducers } from "./fileBrowserUtils";
@@ -75,6 +76,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
             vscodeWrapper,
             objectManagementService,
             ObjectManagementDialogType.RestoreDatabase,
+            LocConstants.RestoreDatabase.restoreDatabaseTitle,
             LocConstants.RestoreDatabase.restoreDatabaseTitle,
             "restoreDatabaseDialog",
             node.sessionId,
@@ -150,10 +152,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         // Get credential names in server
         restoreViewModel.credentialNames = await this.getCredentialNames();
 
-        // Create restore connection context
-        await this.createRestoreConnectionContext(this.state.formState.sourceDatabaseName);
-
-        this.getRestorePlan(false).then((state) => {
+        void this.getRestorePlan(false).then((state) => {
             restoreViewModel = this.setDefaultFormValuesFromPlan(state);
             this.updateViewModel(restoreViewModel, state);
         });
@@ -643,8 +642,13 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
     //#endregion
 
     private async restoreHelper(taskMode: TaskExecutionMode): Promise<RestoreResponse> {
-        const params = await this.getRestoreParams(taskMode, false, false);
-        return await this.objectManagementService.restoreDatabase(params);
+        try {
+            const params = await this.getRestoreParams(taskMode, false, false);
+            return await this.objectManagementService.restoreDatabase(params);
+        } catch (error) {
+            this.state.errorMessage = getErrorMessage(error);
+            return;
+        }
     }
 
     private async getRestorePlan(
@@ -662,8 +666,19 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         restoreViewModel.restorePlanStatus = ApiStatus.Loading;
         this.updateViewModel(restoreViewModel, state);
 
-        const params = await this.getRestoreParams(TaskExecutionMode.execute, true, useDefaults);
-        const plan = await this.objectManagementService.getRestorePlan(params);
+        let plan: RestorePlanResponse;
+        let params: RestoreParams;
+        try {
+            params = await this.getRestoreParams(TaskExecutionMode.execute, true, useDefaults);
+            plan = await this.objectManagementService.getRestorePlan(params);
+        } catch (error) {
+            restoreViewModel.restorePlanStatus = ApiStatus.Error;
+            restoreViewModel.restorePlan = undefined;
+            this.state.errorMessage = getErrorMessage(error);
+            this.updateViewModel(restoreViewModel, state);
+
+            return state;
+        }
         restoreViewModel.cachedRestorePlanParams = params;
         restoreViewModel.restorePlan = plan;
 
@@ -690,7 +705,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         return this.updateViewModel(restoreViewModel, state);
     }
 
-    private async createRestoreConnectionContext(databaseName: string): Promise<void> {
+    private async createRestoreConnectionContext(databaseName: string): Promise<boolean> {
         // If we have an existing connection for a different database, disconnect it
         if (this.state.ownerUri && this.state.ownerUri !== this.node.sessionId) {
             void this.connectionManager.disconnect(this.state.ownerUri);
@@ -701,12 +716,24 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         // Create a new temp connection for the database if we are not already connected
         // This lets sts know the context of the database we are backing up; otherwise,
         // sts will assume the master database context
-        await this.connectionManager.connect(databaseConnectionUri, {
+        const didConnect = await this.connectionManager.connect(databaseConnectionUri, {
             ...this.node.connectionProfile,
             database: databaseName,
         });
 
-        this.state.ownerUri = databaseConnectionUri;
+        if (didConnect) {
+            this.state.ownerUri = databaseConnectionUri;
+        } else {
+            const databaseFormComponent = this.state.formComponents["sourceDatabaseName"];
+            databaseFormComponent.validation = {
+                isValid: false,
+                validationMessage:
+                    LocConstants.RestoreDatabase.couldNotConnectToDatabase(databaseName),
+            };
+            this.state.formErrors.push("sourceDatabaseName");
+        }
+        this.updateState();
+        return didConnect;
     }
 
     private async getRestoreParams(
@@ -735,7 +762,12 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
 
         const sourceDatabaseName = useDefaults ? null : state.formState.sourceDatabaseName;
         if (!useDefaults && sourceDatabaseName && !state.ownerUri.startsWith(sourceDatabaseName)) {
-            await this.createRestoreConnectionContext(sourceDatabaseName);
+            const didConnect = await this.createRestoreConnectionContext(sourceDatabaseName);
+            if (!didConnect) {
+                throw new Error(
+                    LocConstants.RestoreDatabase.couldNotConnectToDatabase(sourceDatabaseName),
+                );
+            }
         }
 
         const restoreInfo: RestoreInfo = {
