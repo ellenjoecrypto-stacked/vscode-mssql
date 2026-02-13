@@ -14,7 +14,7 @@ import {
     ObjectManagementHelpNotification,
 } from "../../../../sharedInterfaces/objectManagement";
 import { RestoreDatabaseContext } from "./restoreDatabaseStateProvider";
-import { RestoreDatabaseViewModel } from "../../../../sharedInterfaces/restore";
+import { RestoreDatabaseViewModel, RestoreType } from "../../../../sharedInterfaces/restore";
 import { RestoreDatabaseForm } from "./restoreDatabaseForm";
 import { useRestoreDatabaseSelector } from "./restoreDatabaseSelector";
 
@@ -53,8 +53,50 @@ export const RestoreDatabaseDialogPage = () => {
     const errorMessage = useRestoreDatabaseSelector(
         (s) => (s.viewModel.model as RestoreDatabaseViewModel).errorMessage,
     );
+    const restoreType = useRestoreDatabaseSelector(
+        (s) => (s.viewModel.model as RestoreDatabaseViewModel).restoreType,
+    );
+    const formComponents = useRestoreDatabaseSelector((s) => s.formComponents);
+    const formErrors = useRestoreDatabaseSelector((s) => s.formErrors);
+    const formState = useRestoreDatabaseSelector((s) => s.formState);
+    const backupFiles = useRestoreDatabaseSelector(
+        (s) => (s.viewModel.model as RestoreDatabaseViewModel).backupFiles,
+    );
+    const restorePlanStatus = useRestoreDatabaseSelector(
+        (s) => (s.viewModel.model as RestoreDatabaseViewModel).restorePlanStatus,
+    );
 
     const [fileErrors, setFileErrors] = useState<number[]>([]);
+
+    const shouldDisableRestoreButton = (): boolean => {
+        const requiredComponents = Object.values(formComponents).filter((component) => {
+            if (!component.required) {
+                return false;
+            }
+            if (component.propertyName === "targetDatabaseName") {
+                return true;
+            }
+
+            return component.groupName === restoreType;
+        });
+
+        const hasMissingRequiredValue = requiredComponents.some((component) => {
+            const value = formState[component.propertyName as keyof typeof formState];
+            return value === undefined || value === null || value === "";
+        });
+
+        const hasNoBackupFiles = restoreType === RestoreType.BackupFile && backupFiles.length === 0;
+
+        const hasFormErrors = formErrors.length > 0;
+
+        return (
+            hasMissingRequiredValue ||
+            hasNoBackupFiles ||
+            hasFormErrors ||
+            fileErrors.length > 0 ||
+            restorePlanStatus !== ApiStatus.Loaded
+        );
+    };
 
     const renderMainContent = () => {
         switch (loadState) {
@@ -77,7 +119,7 @@ export const RestoreDatabaseDialogPage = () => {
                         cancelLabel={locConstants.createDatabase.cancelButton}
                         helpLabel={locConstants.createDatabase.helpButton}
                         scriptLabel={locConstants.backupDatabase.script}
-                        primaryDisabled={false}
+                        primaryDisabled={shouldDisableRestoreButton()}
                         scriptDisabled={false}
                         onPrimary={() => {
                             context.restoreDatabase();

@@ -2053,6 +2053,15 @@ export class LocConstants {
             browseFiles: l10n.t("Browse files"),
             tailLogBackup: l10n.t("Tail-log backup"),
             files: l10n.t("Files"),
+            loadingRestorePlan: l10n.t("Loading restore plan..."),
+            noBackupSets: l10n.t("No backup sets found in the  restore plan"),
+            noDatabaseFiles: l10n.t("No database files found in the restore plan"),
+            invalidTableType: l10n.t("Invalid table type"),
+            logicalFileName: l10n.t("Logical file name"),
+            originalFileName: l10n.t("Original file name"),
+            restoreAs: l10n.t("Restore as"),
+            fileType: l10n.t("File type"),
+            backupSetsToRestore: l10n.t("Backup sets to restore"),
         };
     }
 }

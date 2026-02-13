@@ -236,6 +236,10 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
 
         this.registerReducer("loadAzureComponent", async (state, payload) => {
             const restoreViewModel = this.restoreViewModel(state);
+            if (restoreViewModel.restorePlanStatus !== ApiStatus.Loading) {
+                (state.viewModel.model as RestoreDatabaseViewModel).restorePlanStatus =
+                    ApiStatus.NotStarted;
+            }
             if (
                 payload.componentName == "blob" &&
                 restoreViewModel.azureComponentStatuses["blob"] === ApiStatus.NotStarted
@@ -245,7 +249,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                 );
                 let viewModel = this.restoreViewModel(state);
                 viewModel.azureComponentStatuses[payload.componentName] = ApiStatus.Loaded;
-                this.updateViewModel(viewModel, state);
+                state = this.updateViewModel(viewModel, state);
 
                 void this.getRestorePlan(true, state);
                 return state;
@@ -283,6 +287,17 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
             restoreViewModel.backupFiles = restoreViewModel.backupFiles.filter(
                 (file) => file.filePath !== payload.filePath,
             );
+            return this.updateViewModel(restoreViewModel, state);
+        });
+
+        this.registerReducer("updateSelectedBackupSets", async (state, payload) => {
+            const restoreViewModel = this.restoreViewModel(state);
+
+            restoreViewModel.selectedBackupSets =
+                restoreViewModel.restorePlan.backupSetsToRestore
+                    ?.filter((_, index) => payload.selectedBackupSets.includes(index))
+                    .map((backupSet) => backupSet.id) ?? [];
+
             return this.updateViewModel(restoreViewModel, state);
         });
 
@@ -391,6 +406,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                 type: FormItemType.Dropdown,
                 propertyName: "targetDatabaseName",
                 label: LocConstants.RestoreDatabase.targetDatabase,
+                required: true,
                 options: [],
             }),
 
@@ -538,6 +554,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                 label: LocConstants.RestoreDatabase.overwriteExistingDb,
                 isAdvancedOption: true,
                 groupName: LocConstants.RestoreDatabase.general,
+                tooltip: LocConstants.RestoreDatabase.overwriteExistingDbTooltip,
             }),
 
             keepReplication: createFormItem({
@@ -546,6 +563,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                 label: LocConstants.RestoreDatabase.preserveReplicationSettings,
                 isAdvancedOption: true,
                 groupName: LocConstants.RestoreDatabase.general,
+                tooltip: LocConstants.RestoreDatabase.preserveReplicationSettingsTooltip,
             }),
 
             setRestrictedUser: createFormItem({
@@ -554,6 +572,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                 label: LocConstants.RestoreDatabase.restrictAccessToRestoredDb,
                 isAdvancedOption: true,
                 groupName: LocConstants.RestoreDatabase.general,
+                tooltip: LocConstants.RestoreDatabase.restrictAccessToRestoredDbTooltip,
             }),
 
             recoveryState: createFormItem({
@@ -579,6 +598,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
                 label: LocConstants.RestoreDatabase.leaveSourceDatabase,
                 isAdvancedOption: true,
                 groupName: LocConstants.RestoreDatabase.tailLogBackup,
+                tooltip: LocConstants.RestoreDatabase.leaveSourceDatabaseTooltip,
             }),
 
             closeExistingConnections: createFormItem({
@@ -701,6 +721,14 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
         ) {
             state.formState.targetDatabaseName = targetDatabaseName;
         }
+        if (!state.formState.standbyFile) {
+            state.formState.standbyFile = plan.planDetails.standbyFile?.currentValue || "";
+        }
+        if (!state.formState.tailLogBackupFile) {
+            state.formState.tailLogBackupFile =
+                plan.planDetails.tailLogBackupFile?.currentValue || "";
+        }
+
         restoreViewModel.restorePlanStatus = plan.canRestore ? ApiStatus.Loaded : ApiStatus.Error;
         return this.updateViewModel(restoreViewModel, state);
     }
@@ -755,7 +783,7 @@ export class RestoreDatabaseWebviewController extends ObjectManagementWebviewCon
 
         let backupSets = null;
         if (!shouldOverwrite && restoreViewModel.restorePlan) {
-            backupSets = restoreViewModel.restorePlan.backupSetsToRestore?.map((bs) => bs.id);
+            backupSets = restoreViewModel.selectedBackupSets;
         }
 
         await this.createSasKeyIfNeeded(restoreViewModel, state);

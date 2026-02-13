@@ -490,6 +490,9 @@
     <trans-unit id="++CODE++767e443808512901f6097797d8054570a7bbd053e7db6fc556679e2757ac4162">
       <source xml:lang="en">Backup Type</source>
     </trans-unit>
+    <trans-unit id="++CODE++55f5bbd2445f982b9d79752bd9a713b9a00708684504bdd581d4db0be4476091">
+      <source xml:lang="en">Backup sets to restore</source>
+    </trans-unit>
     <trans-unit id="++CODE++c29bc3a4b89534cd7d948252743e5d9efa498244ba82fb6839a8ceaa26b12c41">
       <source xml:lang="en">Backup the tail of the log</source>
     </trans-unit>
@@ -2418,6 +2421,9 @@
     <trans-unit id="++CODE++96a6d702cb4aed294a5d0b344e779ae3ae2c51a4c0b0938fdd414a035930f0ac">
       <source xml:lang="en">File path is required</source>
     </trans-unit>
+    <trans-unit id="++CODE++ea1df05210c29d1e19a43b81680faf3bb72b5a1b908420e1e241480385362b74">
+      <source xml:lang="en">File type</source>
+    </trans-unit>
     <trans-unit id="++CODE++abc7e9892806b047b4d4786b3685285543f76ca314c4c76246d5f6544c7856c9">
       <source xml:lang="en">Files</source>
     </trans-unit>
@@ -2880,6 +2886,9 @@
     <trans-unit id="++CODE++9016773670b0f5d483d2239742b7dc99fc82cff1ebbc8400a3894971977e823f">
       <source xml:lang="en">Invalid table payload. Expected table with columns array.</source>
     </trans-unit>
+    <trans-unit id="++CODE++47c0fe12afa4bfe2a7a1d5bc84764f66b6794e02c1f5c5372cca55e0a0c8d6a9">
+      <source xml:lang="en">Invalid table type</source>
+    </trans-unit>
     <trans-unit id="++CODE++d1a326f448eac64b9ec46d31b9dce63a30f305179abc83e734c8d960bcaa9631">
       <source xml:lang="en">Is Computed</source>
     </trans-unit>
@@ -2926,8 +2935,8 @@
     <trans-unit id="++CODE++11c56d1016670369a74f4b7d2d2ec8959e8098b44e778fd4e3a3548bd846826b">
       <source xml:lang="en">Learn more about this issue.</source>
     </trans-unit>
-    <trans-unit id="++CODE++c6a368dfde840b93516381f9acf6f50f5bdfd0c89649c6adb9e6c4a9599283f0">
-      <source xml:lang="en">Leave the source database the restoring state (WITH NORECOVERY)</source>
+    <trans-unit id="++CODE++559fca0c4d99d194bbe31f7aee9836af6c46045d80bab08bdf42126f1de77bae">
+      <source xml:lang="en">Leave the source database the restoring state</source>
     </trans-unit>
     <trans-unit id="++CODE++adc95605a1b30c73959fbaf21e60f9723efe855c482fa336a957924d4ea0a08b">
       <source xml:lang="en">Length</source>
@@ -3110,6 +3119,9 @@
     <trans-unit id="++CODE++9939a413e6f35f632ac5745748127482e1422e46a473769ae9804605e5ac946a">
       <source xml:lang="en">Loading restore database...</source>
     </trans-unit>
+    <trans-unit id="++CODE++1c788560f58c375421709b1043b077ad8ff165a22efc6bc32bed8cc90a75b626">
+      <source xml:lang="en">Loading restore plan...</source>
+    </trans-unit>
     <trans-unit id="++CODE++b00da16333ce9b6f0088556c62cd8766f0a1f02a823e3dca0cd8fd040136e297">
       <source xml:lang="en">Loading results...</source>
     </trans-unit>
@@ -3155,6 +3167,9 @@
     </trans-unit>
     <trans-unit id="++CODE++9113b512a7294a5909b6024e3a11f8c0be79f286e9dccc963697c1128534ec23">
       <source xml:lang="en">Log file folder</source>
+    </trans-unit>
+    <trans-unit id="++CODE++ddeb248a914ea9f6af2303de9341990c1da5d7dfdfc631d25734d57768e85394">
+      <source xml:lang="en">Logical file name</source>
     </trans-unit>
     <trans-unit id="++CODE++53f13ae99ed53bd346eb8e1c8cefb7ef8260683b50401caf101360967ea052aa">
       <source xml:lang="en">MCP</source>
@@ -3468,6 +3483,9 @@
     <trans-unit id="++CODE++0e5e6762f01f3c5690e6d1628a2105cca05b94b94ccfc5d51534f4231aa4a533">
       <source xml:lang="en">No authentication required</source>
     </trans-unit>
+    <trans-unit id="++CODE++b1d15a94e9ce73034eb02bb6dc745c2976ccb69520cdbb2fce2f2e0db485322c">
+      <source xml:lang="en">No backup sets found in the  restore plan</source>
+    </trans-unit>
     <trans-unit id="++CODE++5a501b68d2cdd923a92baada7e109fff2c662ad392adf151f69f1f3d32e2180c">
       <source xml:lang="en">No blob containers found</source>
     </trans-unit>
@@ -3510,6 +3528,9 @@
     </trans-unit>
     <trans-unit id="++CODE++d2d2d48c815b0539270873e2ebf75840a4afd724b5fd066bd9dcfb2f30a8c1dd">
       <source xml:lang="en">No data available</source>
+    </trans-unit>
+    <trans-unit id="++CODE++b15c8fb94bc966c85617c43fecf9a75b8a24edc609b0b410743efbcea68da5a9">
+      <source xml:lang="en">No database files found in the restore plan</source>
     </trans-unit>
     <trans-unit id="++CODE++ba88f7938c978ebe84712352f4ef26470066d230ff6332b1e5610b9bd3a81b26">
       <source xml:lang="en">No databases found in the selected workspace.</source>
@@ -3771,6 +3792,9 @@
     </trans-unit>
     <trans-unit id="++CODE++974ccf82fb956ae52dd736ed3f1046fe6da2fcb80bc6679104cbd37773665175">
       <source xml:lang="en">Options have changed. Recompare to see the comparison?</source>
+    </trans-unit>
+    <trans-unit id="++CODE++110b7288ee54432862487c6ca5ea2579493dc3b078d51218ff4e2bfdcac4986c">
+      <source xml:lang="en">Original file name</source>
     </trans-unit>
     <trans-unit id="++CODE++2de12c616c9f918c2f9b8736ac202dcfef66460ded9a0292131caaf08466ff3f">
       <source xml:lang="en">Output file</source>
@@ -4253,14 +4277,17 @@
     <trans-unit id="++CODE++08a1e27d6e3c46f5a5b553a82a39ac2d0e89f6b37a9f57269532ed172d6d2de8">
       <source xml:lang="en">Restore Panel Size</source>
     </trans-unit>
+    <trans-unit id="++CODE++40ccebe29df0e54f847460888e462fd442b6e9bdcb26616e76dd5effec4ac876">
+      <source xml:lang="en">Restore as</source>
+    </trans-unit>
     <trans-unit id="++CODE++f225a9c1cec3aeb23174520a7be45fd29e7f9de8fecba6757bb7cd215235979e">
       <source xml:lang="en">Restore panel size</source>
     </trans-unit>
     <trans-unit id="++CODE++26b4293018ea72418733109f2e245387d9dfcfe7d4083c0c1f29eb1155c98365">
       <source xml:lang="en">Restore properties pane</source>
     </trans-unit>
-    <trans-unit id="++CODE++7f8c6d6880f91f2b42d1367f8850c5b8182636ab36f25cd6ab3395e7c5310171">
-      <source xml:lang="en">Restrict access to the restored database (WITH RESTRICTED_USER)</source>
+    <trans-unit id="++CODE++059715b1246f29c5dd30aa69328e5185f7f5153f5c40a1c3951e16505df5542f">
+      <source xml:lang="en">Restrict access to the restored database</source>
     </trans-unit>
     <trans-unit id="++CODE++a1519957e8b397de6037c8e8a9a1af37009bf6d89fa0f388b1e4b3dc76179e64">
       <source xml:lang="en">Result Set Batch {0} - Query {1}</source>

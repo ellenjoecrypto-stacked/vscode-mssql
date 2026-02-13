@@ -11,8 +11,6 @@ import {
     DocumentEdit24Regular,
 } from "@fluentui/react-icons";
 import { BackupFile } from "../../../../sharedInterfaces/backup";
-import { BackupDatabaseContext } from "./backupDatabaseStateProvider";
-import { useContext } from "react";
 
 const useStyles = makeStyles({
     cardDiv: {
@@ -63,11 +61,6 @@ export const BackupFileCard = ({
     handleFileChange?: (index: number, value: string, isFolderPath: boolean) => void;
 }) => {
     const classes = useStyles();
-    const context = useContext(BackupDatabaseContext);
-
-    if (!context) {
-        return undefined;
-    }
 
     const getFileNameErrorMessage = (filePath: string) => {
         const fileName = getFileNameFromPath(filePath);

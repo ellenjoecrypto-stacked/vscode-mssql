@@ -2949,9 +2949,7 @@ export class RestoreDatabase {
     public static preserveReplicationSettingsTooltip = l10n.t(
         "Uses the WITH KEEP_REPLICATION option during restore",
     );
-    public static restrictAccessToRestoredDb = l10n.t(
-        "Restrict access to the restored database (WITH RESTRICTED_USER)",
-    );
+    public static restrictAccessToRestoredDb = l10n.t("Restrict access to the restored database");
     public static restrictAccessToRestoredDbTooltip = l10n.t(
         "Uses the WITH RESTRICTED_USER option during restore",
     );
@@ -2964,9 +2962,7 @@ export class RestoreDatabase {
     public static standbyFile = l10n.t("Standby file");
     public static tailLogBackup = l10n.t("Tail-log backup");
     public static takeTailLogBackup = l10n.t("Take tail-log backup before restore");
-    public static leaveSourceDatabase = l10n.t(
-        "Leave the source database the restoring state (WITH NORECOVERY)",
-    );
+    public static leaveSourceDatabase = l10n.t("Leave the source database the restoring state");
     public static leaveSourceDatabaseTooltip = l10n.t(
         "Uses the WITH NORECOVERY option during restore",
     );

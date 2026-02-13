@@ -242,6 +242,8 @@ export class RestoreDatabaseViewModel extends DisasterRecoveryViewModel {
     credentialNames: string[] = [];
 
     cachedRestorePlanParams: RestoreParams | undefined = undefined;
+
+    selectedBackupSets: string[] = [];
 }
 
 export interface RestoreDatabaseParams {
@@ -298,6 +300,10 @@ export interface RestoreDatabaseReducers<TFormState>
     removeBackupFile: {
         filePath: string;
     };
+
+    updateSelectedBackupSets: {
+        selectedBackupSets: number[];
+    };
 }
 
 export interface RestoreDatabaseProvider
@@ -326,6 +332,8 @@ export interface RestoreDatabaseProvider
      * @param filePath  The file path to remove
      */
     removeBackupFile(filePath: string): void;
+
+    updateSelectedBackupSets(selectedBackupSets: number[]): void;
 }
 
 export enum RestoreType {
@@ -338,4 +346,9 @@ export enum RecoveryState {
     WithRecovery = "WithRecovery",
     NoRecovery = "WithNoRecovery",
     Standby = "WithStandby",
+}
+
+export enum RestorePlanTableType {
+    BackupSets,
+    DatabaseFiles,
 }

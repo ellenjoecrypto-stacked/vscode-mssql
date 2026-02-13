@@ -98,6 +98,11 @@ const RestoreDatabaseStateProvider: React.FC<RestoreDatabaseProviderProps> = ({ 
                         filePath,
                     });
                 },
+                updateSelectedBackupSets: function (selectedBackupSets: number[]): void {
+                    extensionRpc.action("updateSelectedBackupSets", {
+                        selectedBackupSets,
+                    });
+                },
             }}>
             {children}
         </RestoreDatabaseContext.Provider>

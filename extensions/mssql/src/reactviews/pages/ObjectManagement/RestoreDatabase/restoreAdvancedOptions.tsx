@@ -18,7 +18,7 @@ import {
 import { Dismiss24Regular } from "@fluentui/react-icons";
 import { locConstants } from "../../../common/locConstants";
 import { useContext, useState } from "react";
-import { FormField } from "../../../common/forms/form.component";
+import { FormField, useFormStyles } from "../../../common/forms/form.component";
 import { useAccordionStyles } from "../../../common/styles";
 import {
     ObjectManagementFormItemSpec,
@@ -32,11 +32,13 @@ import {
     RecoveryState,
     RestoreDatabaseFormState,
     RestoreDatabaseViewModel,
+    RestorePlanTableType,
     RestoreType,
 } from "../../../../sharedInterfaces/restore";
 import { FileBrowserProvider } from "../../../../sharedInterfaces/fileBrowser";
 import { FileBrowserDialog } from "../../../common/FileBrowserDialog";
 import { useRestoreDatabaseSelector } from "./restoreDatabaseSelector";
+import { RestorePlanTableContainer } from "./restoreTable";
 
 export const AdvancedOptionsDrawer = ({
     isAdvancedDrawerOpen,
@@ -69,6 +71,7 @@ export const AdvancedOptionsDrawer = ({
         (s) => s.defaultFileBrowserExpandPath,
     );
     const fileFilterOptions = useRestoreDatabaseSelector((s) => s.fileFilterOptions);
+    const formStyles = useFormStyles();
 
     const fileBrowserFields = [
         "dataFileFolder",
@@ -134,10 +137,7 @@ export const AdvancedOptionsDrawer = ({
         switch (propertyName) {
             case "dataFileFolder":
             case "logFileFolder":
-                return (
-                    restoreViewModel.restoreType === RestoreType.BackupFile &&
-                    formState.relocateDbFiles
-                );
+                return shouldShowRestoreFileField();
             case "standbyFile":
                 return formState.recoveryState === RecoveryState.Standby;
             case "tailLogBackupFile":
@@ -145,6 +145,10 @@ export const AdvancedOptionsDrawer = ({
             default:
                 return false;
         }
+    };
+
+    const shouldShowRestoreFileField = (): boolean => {
+        return restoreViewModel.restoreType === RestoreType.BackupFile && formState.relocateDbFiles;
     };
 
     return (
@@ -254,6 +258,9 @@ export const AdvancedOptionsDrawer = ({
                                                                         option.propertyName,
                                                                     ) && (
                                                                         <Button
+                                                                            className={
+                                                                                formStyles.formComponentDiv
+                                                                            }
                                                                             appearance="secondary"
                                                                             onClick={() => {
                                                                                 setFileBrowserProp(
@@ -269,6 +276,7 @@ export const AdvancedOptionsDrawer = ({
                                                                             style={{
                                                                                 height: "28px",
                                                                                 width: "100px",
+                                                                                margin: "5px",
                                                                             }}>
                                                                             {
                                                                                 locConstants
@@ -279,6 +287,15 @@ export const AdvancedOptionsDrawer = ({
                                                                     )}
                                                                 </div>
                                                             ),
+                                                    )}
+                                                {advancedGroupName ===
+                                                    locConstants.restoreDatabase.files &&
+                                                    shouldShowRestoreFileField() && (
+                                                        <RestorePlanTableContainer
+                                                            restoreTableType={
+                                                                RestorePlanTableType.DatabaseFiles
+                                                            }
+                                                        />
                                                     )}
                                             </AccordionPanel>
                                         </AccordionItem>
