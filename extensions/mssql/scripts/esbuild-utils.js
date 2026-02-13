@@ -7,7 +7,6 @@ const esbuild = require("esbuild");
 const fs = require("fs").promises;
 const logger = require("../../../scripts/terminal-logger");
 
-
 function esbuildProblemMatcherPlugin(processName) {
     return {
         name: "esbuild-problem-matcher",

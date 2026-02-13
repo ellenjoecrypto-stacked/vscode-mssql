@@ -418,11 +418,13 @@
 }
 
 #tableExplorerGrid .slick-sort-indicator-asc {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%23888' d='M4 0L0 6h8z'/%3E%3C/svg%3E") no-repeat center;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%23888' d='M4 0L0 6h8z'/%3E%3C/svg%3E")
+        no-repeat center;
 }
 
 #tableExplorerGrid .slick-sort-indicator-desc {
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%23888' d='M4 8L0 2h8z'/%3E%3C/svg%3E") no-repeat center;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath fill='%23888' d='M4 8L0 2h8z'/%3E%3C/svg%3E")
+        no-repeat center;
 }
 
 /* Header menu button */

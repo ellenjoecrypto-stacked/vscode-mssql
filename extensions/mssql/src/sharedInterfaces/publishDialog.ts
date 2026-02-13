@@ -87,8 +87,11 @@ export interface IPublishForm {
 /**
  * Extends generic FormState so form system works unchanged.
  */
-export interface PublishDialogState
-    extends FormState<IPublishForm, PublishDialogState, PublishDialogFormItemSpec> {
+export interface PublishDialogState extends FormState<
+    IPublishForm,
+    PublishDialogState,
+    PublishDialogFormItemSpec
+> {
     projectFilePath: string;
     inProgress: boolean;
     lastPublishResult?: { success: boolean; details?: string };
@@ -105,8 +108,11 @@ export interface PublishDialogState
 /**
  * Form item specification for Publish dialog fields.
  */
-export interface PublishDialogFormItemSpec
-    extends FormItemSpec<IPublishForm, PublishDialogState, PublishDialogFormItemSpec> {}
+export interface PublishDialogFormItemSpec extends FormItemSpec<
+    IPublishForm,
+    PublishDialogState,
+    PublishDialogFormItemSpec
+> {}
 
 /**
  * Reducers (messages) the controller supports in addition to the generic form actions.

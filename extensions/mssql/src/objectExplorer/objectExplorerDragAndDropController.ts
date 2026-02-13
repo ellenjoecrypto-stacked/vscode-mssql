@@ -27,9 +27,7 @@ interface ObjectExplorerDragMetadata {
 const OE_MIME_TYPE = "application/vnd.code.tree.objectExplorer";
 const TEXT_MIME_TYPE = "text/plain";
 
-export class ObjectExplorerDragAndDropController
-    implements vscode.TreeDragAndDropController<TreeNodeInfo>
-{
+export class ObjectExplorerDragAndDropController implements vscode.TreeDragAndDropController<TreeNodeInfo> {
     readonly dragMimeTypes = [OE_MIME_TYPE, TEXT_MIME_TYPE];
     readonly dropMimeTypes = [OE_MIME_TYPE];
 

@@ -43,9 +43,10 @@ interface EventTargetWithClassName extends EventTarget {
     className: string | undefined;
 }
 
-export class CellSelectionModel<T extends Slick.SlickData>
-    implements Slick.SelectionModel<T, Array<Slick.Range>>
-{
+export class CellSelectionModel<T extends Slick.SlickData> implements Slick.SelectionModel<
+    T,
+    Array<Slick.Range>
+> {
     private grid!: Slick.Grid<T>;
     private selector: ICellRangeSelector<T>;
     private ranges: Array<Slick.Range> = [];

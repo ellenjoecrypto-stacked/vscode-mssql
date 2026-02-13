@@ -44,7 +44,12 @@ import {
     StorageAccountsListKeysResponse,
     StorageManagementClient,
 } from "@azure/arm-storage";
-import { BlobServiceClient, ContainerClient, BlobItem, StorageSharedKeyCredential } from "@azure/storage-blob";
+import {
+    BlobServiceClient,
+    ContainerClient,
+    BlobItem,
+    StorageSharedKeyCredential,
+} from "@azure/storage-blob";
 
 export const azureSubscriptionFilterConfigKey = "mssql.selectedAzureSubscriptions";
 export const MANAGED_INSTANCE_PUBLIC_PORT = 3342;
@@ -373,7 +378,6 @@ export class VsCodeAzureHelper {
             );
 
             const blobs: BlobItem[] = [];
-
 
             for await (const blob of containerClient.listBlobsFlat()) {
                 blobs.push(blob);

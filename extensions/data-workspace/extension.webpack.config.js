@@ -5,19 +5,19 @@
 
 //@ts-check
 
-'use strict';
+"use strict";
 
-const withDefaults = require('../shared.webpack.config');
+const withDefaults = require("../shared.webpack.config");
 
 const externals = {
-	'applicationinsights-native-metrics': 'commonjs applicationinsights-native-metrics',
-	'@opentelemetry/tracing': 'commonjs @opentelemetry/tracing'
+    "applicationinsights-native-metrics": "commonjs applicationinsights-native-metrics",
+    "@opentelemetry/tracing": "commonjs @opentelemetry/tracing",
 };
 
 module.exports = withDefaults({
-	context: __dirname,
-	entry: {
-		main: './src/main.ts'
-	},
-	externals: externals
+    context: __dirname,
+    entry: {
+        main: "./src/main.ts",
+    },
+    externals: externals,
 });

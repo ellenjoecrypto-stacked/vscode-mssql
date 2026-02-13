@@ -76,12 +76,11 @@ export type ObjectManagementViewModel =
           model?: RestoreDatabaseViewModel;
       };
 
-export interface ObjectManagementWebviewState<TFormState>
-    extends FormState<
-        TFormState,
-        ObjectManagementWebviewState<TFormState>,
-        ObjectManagementFormItemSpec<TFormState>
-    > {
+export interface ObjectManagementWebviewState<TFormState> extends FormState<
+    TFormState,
+    ObjectManagementWebviewState<TFormState>,
+    ObjectManagementFormItemSpec<TFormState>
+> {
     viewModel: ObjectManagementViewModel;
 
     // Form specific state
@@ -148,12 +147,11 @@ export namespace ObjectManagementHelpNotification {
     export const type = new NotificationType<void>("objectManagementWebview/help");
 }
 
-export interface ObjectManagementFormItemSpec<TFormState>
-    extends FormItemSpec<
-        TFormState,
-        ObjectManagementWebviewState<TFormState>,
-        ObjectManagementFormItemSpec<TFormState>
-    > {
+export interface ObjectManagementFormItemSpec<TFormState> extends FormItemSpec<
+    TFormState,
+    ObjectManagementWebviewState<TFormState>,
+    ObjectManagementFormItemSpec<TFormState>
+> {
     /**
      * The width of the form item component
      */

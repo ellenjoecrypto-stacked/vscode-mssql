@@ -413,8 +413,7 @@ export interface DesignerTablePropertiesBase {
  * The properties for the table component in the designer.
  */
 export interface DesignerTableProperties
-    extends TableDesignerComponentProperties,
-        DesignerTablePropertiesBase {
+    extends TableDesignerComponentProperties, DesignerTablePropertiesBase {
     /**
      * the name of the properties to be displayed, properties not in this list will be accessible in properties pane.
      */
